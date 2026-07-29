@@ -6,7 +6,7 @@ DOCK_COMP = docker compose -p transcendence -f srcs/docker-compose.yml
 all: build up
 
 build:
-	$(DOCK_COMP) build --parallel
+	$(DOCK_COMP) build
 
 up:
 	$(DOCK_COMP) up -d
