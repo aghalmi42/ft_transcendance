@@ -5,10 +5,8 @@ services:
     container_name: transcendence_postgres
     restart: always
 
-    environment:
-      POSTGRES_USER: transcendence
-      POSTGRES_PASSWORD: transcendence
-      POSTGRES_DB: transcendence
+    env_file:
+      - .env
 
     ports:
       - "5432:5432"
@@ -22,8 +20,11 @@ services:
       context: ./backend
     container_name: transcendence_backend
     restart: always
+    env_file:
+      - .env
     ports:
       - "3001:3001"
+    
     volumes:
       - ./backend:/app
       - backend_node_modules:/app/node_modules
