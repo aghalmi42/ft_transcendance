@@ -17,4 +17,4 @@ COPY . .
 
 EXPOSE 3001
 
-CMD ["npm", "run", "start:dev"]
+CMD ["sh", "setup.sh"]
