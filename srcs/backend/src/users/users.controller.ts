@@ -23,8 +23,8 @@ export class UsersController {
   return user;
   }
   @Get(':id')
-  getUserById(@Param('id', ParseUUIDPipe) id: string) {
-    if(isUUID(id))
+  getUserById(@Param('id') id: string) {
+    if (isUUID(id))
       return this.usersService.findOneById(id);
     return this.usersService.findOneByUsername(id);
   }

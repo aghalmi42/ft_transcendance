@@ -1,5 +1,5 @@
 import { UserStatus } from '../../common/enums/user-status.enum';
-
+import {Friendship} from '../../friends/entities/friends.entity'
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -7,6 +7,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  OneToMany,
 } from 'typeorm';
 
 @Entity('users')
@@ -36,6 +37,13 @@ export class User {
   default: UserStatus.OFFLINE,
   })
   status!: UserStatus;
+
+
+  @OneToMany(() => Friendship, (friendship) => friendship.sender)
+  sentFriendships!: Friendship[];
+
+  @OneToMany(() => Friendship, (friendship) => friendship.receiver)
+  receivedFriendships!: Friendship[];
 
   @CreateDateColumn()
   createdAt!: Date;

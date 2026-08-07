@@ -12,5 +12,4 @@ export class CreateUser1785604307111 implements MigrationInterface {
         await queryRunner.query(`DROP TABLE "users"`);
         await queryRunner.query(`DROP TYPE "public"."users_status_enum"`);
     }
-
 }

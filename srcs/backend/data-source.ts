@@ -2,6 +2,7 @@ import { DataSource } from 'typeorm';
 import { User } from './src/users/entities/user.entity';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
+import { Friendship } from './src/friends/entities/friends.entity';
 
 dotenv.config({
   path: path.resolve(__dirname, '../.env'),
@@ -18,7 +19,7 @@ export const AppDataSource = new DataSource({
   database: process.env.POSTGRES_DB,
 
   entities: [
-    User,
+    User,Friendship
   ],
 
   migrations: [

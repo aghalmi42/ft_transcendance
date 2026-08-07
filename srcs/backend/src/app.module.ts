@@ -5,6 +5,7 @@ import { UsersModule } from './users/users.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { FriendsModule } from './friends/friends.module';
 
 import databaseConfig from './config/database.config';
 
@@ -27,6 +28,8 @@ import databaseConfig from './config/database.config';
     UsersModule,
 
     AuthModule,
+
+    FriendsModule,
   ],
   controllers: [AppController], 
   providers: [AppService],
