@@ -4,6 +4,7 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { Friendship } from './src/friends/entities/friends.entity';
 import { Post } from './src/posts/entities/post.entity';
+import { Comment } from './src/comments/entities/comment.entity';
 
 dotenv.config({
   path: path.resolve(__dirname, '../.env'),
@@ -20,7 +21,7 @@ export const AppDataSource = new DataSource({
   database: process.env.POSTGRES_DB,
 
   entities: [
-    User,Friendship, Post
+    User,Friendship, Post, Comment
   ],
 
   migrations: [
