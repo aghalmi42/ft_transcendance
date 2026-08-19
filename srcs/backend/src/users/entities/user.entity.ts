@@ -1,6 +1,8 @@
 import { UserStatus } from '../../common/enums/user-status.enum';
 import {Friendship} from '../../friends/entities/friends.entity'
 import { Post } from '../../posts/entities/post.entity';
+import { Comment } from '../../comments/entities/comment.entity';
+import { Exclude } from 'class-transformer';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -19,9 +21,11 @@ export class User {
   @Column({ unique: true })
   username!: string;
 
+  @Exclude()
   @Column({ unique: true })
   email!: string;
 
+  @Exclude()
   @Column()
   passwordHash!: string;
 
@@ -48,6 +52,9 @@ export class User {
 
   @OneToMany(() => Post, (post) => post.author)
   posts!: Post[];
+
+  @OneToMany(() => Comment, (comment) => comment.author)
+  comments!: Comment[];
 
   @CreateDateColumn()
   createdAt!: Date;
