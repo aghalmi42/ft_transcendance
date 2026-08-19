@@ -7,6 +7,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
 import { FriendsModule } from './friends/friends.module';
 import { PostsModule } from './posts/posts.module';
+import { CommentsModule } from './comments/comments.module';
 
 import databaseConfig from './config/database.config';
 
@@ -33,6 +34,7 @@ import databaseConfig from './config/database.config';
     FriendsModule,
 
     PostsModule,
+    CommentsModule,
   ],
   controllers: [AppController], 
   providers: [AppService],
