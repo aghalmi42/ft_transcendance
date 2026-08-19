@@ -1,5 +1,6 @@
 import { UserStatus } from '../../common/enums/user-status.enum';
 import {Friendship} from '../../friends/entities/friends.entity'
+import { Post } from '../../posts/entities/post.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -44,6 +45,9 @@ export class User {
 
   @OneToMany(() => Friendship, (friendship) => friendship.receiver)
   receivedFriendships!: Friendship[];
+
+  @OneToMany(() => Post, (post) => post.author)
+  posts!: Post[];
 
   @CreateDateColumn()
   createdAt!: Date;
