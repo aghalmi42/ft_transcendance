@@ -1,3 +1,4 @@
+
 import { DataSource } from 'typeorm';
 import { User } from './src/users/entities/user.entity';
 import * as dotenv from 'dotenv';
@@ -5,6 +6,11 @@ import * as path from 'path';
 import { Friendship } from './src/friends/entities/friends.entity';
 import { Post } from './src/posts/entities/post.entity';
 import { Comment } from './src/comments/entities/comment.entity';
+import { PostLike } from './src/likes/entities/post-like.entity';
+import { CommentLike } from './src/likes/entities/comment-like.entity';
+import { Notification } from './src/notifications/entities/notification.entity';
+import { Conversation } from './src/chat/entities/conversation.entity';
+import { Message } from './src/chat/entities/message.entity';
 
 dotenv.config({
   path: path.resolve(__dirname, '../.env'),
@@ -21,7 +27,7 @@ export const AppDataSource = new DataSource({
   database: process.env.POSTGRES_DB,
 
   entities: [
-    User,Friendship, Post, Comment
+    User,Friendship, Post, Comment, PostLike, CommentLike, Notification, Conversation, Message
   ],
 
   migrations: [
