@@ -19,7 +19,16 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate }) => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [bio, setBio] = useState(user?.bio || '');
-  const [avatarSeed, setAvatarSeed] = useState(user?.username || 'Player');
+  const [customAvatar, setCustomAvatar] = useState(user?.avatar || '');
+
+  const AVATAR_PRESETS = [
+    `https://api.dicebear.com/7.x/bottts/svg?seed=CyberBot`,
+    `https://api.dicebear.com/7.x/bottts/svg?seed=NeonKnight`,
+    `https://api.dicebear.com/7.x/bottts/svg?seed=PixelWarrior`,
+    `https://api.dicebear.com/7.x/bottts/svg?seed=ShadowGamer`,
+    `https://api.dicebear.com/7.x/bottts/svg?seed=Super42`,
+    `https://api.dicebear.com/7.x/bottts/svg?seed=RetroArcade`,
+  ];
 
   if (!user) return null;
 
@@ -27,10 +36,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate }) => {
   const winRate = totalMatches > 0 ? (((user.wins || 0) / totalMatches) * 100).toFixed(1) : '0';
 
   const handleSaveProfile = async () => {
-    const newAvatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${avatarSeed}`;
     await updateProfile({
       bio,
-      avatar: newAvatar,
+      avatar: customAvatar,
     });
     setIsEditing(false);
     addToast('Profil mis à jour avec succès !', 'success');
@@ -97,9 +105,9 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate }) => {
               <Avatar username={user.username} src={user.avatar} size="xl" status={user.status} />
               {isEditing && (
                 <button
-                  onClick={() => setAvatarSeed('seed_' + Math.random().toString(36).substring(2, 7))}
+                  onClick={() => setCustomAvatar(`https://api.dicebear.com/7.x/bottts/svg?seed=seed_${Math.random().toString(36).substring(2, 7)}`)}
                   className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Changer d'avatar"
+                  title="Générer aléatoirement"
                 >
                   🎲 Nouveau
                 </button>
@@ -111,13 +119,52 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate }) => {
               <p className="text-xs text-slate-400">{user.email}</p>
 
               {isEditing ? (
-                <textarea
-                  rows={2}
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder="Votre biographie..."
-                  className="w-full mt-2 bg-slate-950 text-xs text-slate-200 p-2 rounded-lg border border-slate-700 focus:outline-none"
-                />
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase font-mono block mb-1">
+                      Choisir un avatar prédéfini :
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {AVATAR_PRESETS.map((url, idx) => (
+                        <img
+                          key={idx}
+                          src={url}
+                          alt="Avatar preset"
+                          onClick={() => setCustomAvatar(url)}
+                          className={`w-8 h-8 rounded-full cursor-pointer border-2 transition-all ${
+                            customAvatar === url ? 'border-violet-400 scale-110' : 'border-slate-800 hover:border-slate-600'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase font-mono block mb-1">
+                      Ou URL personnalisée :
+                    </label>
+                    <input
+                      type="url"
+                      value={customAvatar}
+                      onChange={(e) => setCustomAvatar(e.target.value)}
+                      placeholder="https://..."
+                      className="w-full bg-slate-950 text-xs text-slate-200 p-2 rounded-lg border border-slate-700 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase font-mono block mb-1">
+                      Biographie :
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      placeholder="Votre biographie..."
+                      className="w-full bg-slate-950 text-xs text-slate-200 p-2 rounded-lg border border-slate-700 focus:outline-none"
+                    />
+                  </div>
+                </div>
               ) : (
                 <p className="text-xs text-slate-300 italic pt-1 max-w-lg">
                   "{user.bio || 'Aucune biographie rédigée.'}"
