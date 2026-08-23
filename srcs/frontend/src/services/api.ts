@@ -488,7 +488,87 @@ class ApiService {
   }
 
   // ===========================================================================
-  // 7. LOCAL STORAGE HELPERS
+  // 7. ADVANCED SEARCH ENDPOINTS
+  // ===========================================================================
+  public async searchUsers(query: string): Promise<User[]> {
+    if (!query.trim()) return [];
+    try {
+      const users = await this.request<User[]>(`/search/users?q=${encodeURIComponent(query)}`);
+      return Array.isArray(users) ? users : [];
+    } catch {
+      // Fallback search in mock users
+      return MOCK_USERS.filter((u) => u.username.toLowerCase().includes(query.toLowerCase()));
+    }
+  }
+
+  public async searchPosts(query: string): Promise<PostItem[]> {
+    if (!query.trim()) return [];
+    try {
+      const posts = await this.request<PostItem[]>(`/search/posts?q=${encodeURIComponent(query)}`);
+      return Array.isArray(posts) ? posts : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public async searchAll(query: string): Promise<{ users: User[]; posts: PostItem[] }> {
+    if (!query.trim()) return { users: [], posts: [] };
+    try {
+      return await this.request<{ users: User[]; posts: PostItem[] }>(`/search?q=${encodeURIComponent(query)}`);
+    } catch {
+      const users = await this.searchUsers(query);
+      const posts = await this.searchPosts(query);
+      return { users, posts };
+    }
+  }
+
+  // ===========================================================================
+  // 8. NOTIFICATIONS ENDPOINTS
+  // ===========================================================================
+  public async getNotifications(): Promise<any[]> {
+    try {
+      const notifs = await this.request<any[]>('/notifications');
+      return Array.isArray(notifs) ? notifs : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public async getUnreadNotificationCount(): Promise<number> {
+    try {
+      const res = await this.request<{ count: number }>('/notifications/unread-count');
+      return res?.count ?? 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  public async markNotificationAsRead(id: string): Promise<void> {
+    try {
+      await this.request(`/notifications/${id}/read`, { method: 'PATCH' });
+    } catch {
+      // ignore
+    }
+  }
+
+  public async markAllNotificationsAsRead(): Promise<void> {
+    try {
+      await this.request('/notifications/read-all', { method: 'PATCH' });
+    } catch {
+      // ignore
+    }
+  }
+
+  public async deleteNotification(id: string): Promise<void> {
+    try {
+      await this.request(`/notifications/${id}`, { method: 'DELETE' });
+    } catch {
+      // ignore
+    }
+  }
+
+  // ===========================================================================
+  // 9. LOCAL STORAGE HELPERS
   // ===========================================================================
   public getLocalUser(): User | null {
     const raw = localStorage.getItem('active_user');

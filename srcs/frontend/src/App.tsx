@@ -20,6 +20,8 @@ import { ChatView } from './components/chat/ChatView';
 import { FriendsList } from './components/friends/FriendsList';
 import { ProfileView } from './components/profile/ProfileView';
 import { FeedView } from './components/feed/FeedView';
+import { SearchPage } from './components/search/SearchPage';
+import { NotificationsView } from './components/notifications/NotificationsView';
 
 
 
@@ -109,6 +111,8 @@ const MainRouter: React.FC = () => {
       )}
 
       {currentTab === 'feed' && <FeedView onNavigate={navigate} />}
+      {currentTab === 'search' && <SearchPage initialQuery={searchQuery} onNavigate={navigate} onStartDuel={handleStartDuel} />}
+      {currentTab === 'notifications' && <NotificationsView onNavigate={navigate} onStartDuel={handleStartDuel} />}
       {currentTab === 'tournaments' && <TournamentView onNavigate={navigate} />}
       {currentTab === 'chat' && <ChatView onNavigate={navigate} />}
       {currentTab === 'friends' && <FriendsList onNavigate={navigate} />}

@@ -40,6 +40,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
       category: 'COMMUNICATION & SOCIAL',
       items: [
         { id: 'feed', label: 'Fil d’Actualité', icon: '📰' },
+        { id: 'search', label: 'Recherche Globale', icon: '🔍' },
+        { id: 'notifications', label: 'Notifications', icon: '🔔' },
         { id: 'chat', label: 'Discussion & Défis 1v1', icon: '💬', count: messages.length > 0 ? messages.length : undefined },
         { id: 'friends', label: 'Liste d\'Amis', icon: '👥' },
       ],

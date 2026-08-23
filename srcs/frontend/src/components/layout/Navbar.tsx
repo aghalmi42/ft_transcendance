@@ -149,8 +149,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               type="text"
               value={searchTerm}
               onChange={handleSearchChange}
-              placeholder="Rechercher joueurs, tournois, scores..."
-              className="w-full pl-9 pr-4 py-1.5 bg-slate-900 text-xs text-slate-200 placeholder-slate-500 border border-slate-800 rounded-xl focus:outline-none focus:border-cyan-500 transition-all font-sans"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  onNavigate('search');
+                }
+              }}
+              placeholder="Rechercher joueurs, posts, tournois..."
+              className="w-full pl-9 pr-4 py-1.5 bg-slate-900 text-xs text-slate-200 placeholder-slate-500 border border-slate-800 rounded-xl focus:outline-none focus:border-violet-500 transition-all font-sans"
             />
           </div>
         </div>
