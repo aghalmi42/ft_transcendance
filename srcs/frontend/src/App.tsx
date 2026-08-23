@@ -1,122 +1,147 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider } from './context/NotificationContext';
+import { ChatProvider } from './context/ChatContext';
+import { GameProvider } from './context/GameContext';
+import { Layout } from './components/layout/Layout';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Landing & Public Pages
+import { LandingPage } from './components/landing/LandingPage';
+import { TermsOfService } from './components/legal/TermsOfService';
+import { PrivacyPolicy } from './components/legal/PrivacyPolicy';
+import { GdprCenter } from './components/legal/GdprCenter';
 
+// Platform Protected Modules
+import { GameCatalog } from './components/game/GameCatalog';
+import { GamingHubPage } from './components/game/GamingHubPage';
+import { MatchHistoryPage } from './components/profile/MatchHistoryPage';
+import { TournamentView } from './components/tournament/TournamentView';
+import { ChatView } from './components/chat/ChatView';
+import { FriendsList } from './components/friends/FriendsList';
+import { ProfileView } from './components/profile/ProfileView';
+import { FeedView } from './components/feed/FeedView';
+import { SearchPage } from './components/search/SearchPage';
+import { NotificationsView } from './components/notifications/NotificationsView';
+
+
+
+import { SettingsView } from './components/profile/SettingsView';
+import { AboutView } from './components/legal/AboutView';
+
+const MainRouter: React.FC = () => {
+  const { user } = useAuth();
+  const [currentTab, setCurrentTab] = useState<string>('games');
+  const [selectedGameId, setSelectedGameId] = useState<string>('pong');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeDuelRoomId, setActiveDuelRoomId] = useState<string | undefined>(undefined);
+  const [activeOpponentName, setActiveOpponentName] = useState<string | undefined>(undefined);
+
+  const navigate = (tabId: string) => {
+    if (tabId !== 'game') {
+      setActiveDuelRoomId(undefined);
+      setActiveOpponentName(undefined);
+    }
+    setCurrentTab(tabId);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleLaunchGame = (gameId: string) => {
+    setSelectedGameId(gameId);
+    setActiveDuelRoomId(undefined);
+    setActiveOpponentName(undefined);
+    setCurrentTab('game');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleStartDuel = (roomId?: string, opponentName?: string) => {
+    setActiveDuelRoomId(roomId);
+    setActiveOpponentName(opponentName);
+    setSelectedGameId('pong');
+    setCurrentTab('game');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 1. Unauthenticated Gate (Landing Page & Legal docs)
+  if (!user) {
+    if (['terms', 'privacy', 'gdpr'].includes(currentTab)) {
+      return (
+        <div className="min-h-screen bg-slate-950 text-slate-100 p-6 flex flex-col items-center">
+          <div className="max-w-4xl w-full space-y-4">
+            <button
+              onClick={() => navigate('home')}
+              className="px-4 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs font-semibold text-slate-300 transition-colors cursor-pointer"
+            >
+              ← Retour à l'accueil
+            </button>
+            {currentTab === 'terms' && <TermsOfService onNavigate={navigate} />}
+            {currentTab === 'privacy' && <PrivacyPolicy onNavigate={navigate} />}
+            {currentTab === 'gdpr' && <GdprCenter onNavigate={navigate} />}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <LandingPage
+        onLoginSuccess={() => navigate('games')}
+        onNavigateLegal={(page) => navigate(page)}
+      />
+    );
+  }
+
+  // 2. Authenticated Platform Shell
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <Layout
+      currentTab={currentTab}
+      onNavigate={navigate}
+      onSearchQuery={(q) => setSearchQuery(q)}
+      onStartDuel={handleStartDuel}
+    >
+      {(currentTab === 'game' || currentTab === 'pong') && (
+        <GamingHubPage
+          onNavigate={navigate}
+          initialGame={selectedGameId || 'pong'}
+          initialDuelRoomId={activeDuelRoomId}
+          initialOpponentName={activeOpponentName}
+        />
+      )}
 
-      <div className="ticks"></div>
+      {(currentTab === 'catalog' || currentTab === 'games' || currentTab === 'home') && (
+        <GameCatalog onSelectGame={handleLaunchGame} searchQuery={searchQuery} />
+      )}
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      {currentTab === 'feed' && <FeedView onNavigate={navigate} />}
+      {currentTab === 'search' && <SearchPage initialQuery={searchQuery} onNavigate={navigate} onStartDuel={handleStartDuel} />}
+      {currentTab === 'notifications' && <NotificationsView onNavigate={navigate} onStartDuel={handleStartDuel} />}
+      {currentTab === 'tournaments' && <TournamentView onNavigate={navigate} />}
+      {currentTab === 'chat' && <ChatView onNavigate={navigate} />}
+      {currentTab === 'friends' && <FriendsList onNavigate={navigate} />}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+
+      {currentTab === 'profile' && <ProfileView onNavigate={navigate} />}
+
+      {currentTab === 'history' && <MatchHistoryPage onNavigate={navigate} />}
+      {currentTab === 'settings' && <SettingsView onNavigate={navigate} />}
+      {currentTab === 'terms' && <TermsOfService onNavigate={navigate} />}
+      {currentTab === 'privacy' && <PrivacyPolicy onNavigate={navigate} />}
+      {currentTab === 'gdpr' && <GdprCenter onNavigate={navigate} />}
+      {currentTab === 'about' && <AboutView onNavigate={navigate} />}
+    </Layout>
+  );
+};
+
+export function App() {
+  return (
+    <AuthProvider>
+      <NotificationProvider>
+        <ChatProvider>
+          <GameProvider>
+            <MainRouter />
+          </GameProvider>
+        </ChatProvider>
+      </NotificationProvider>
+    </AuthProvider>
+  );
 }
 
-export default App
+export default App;
