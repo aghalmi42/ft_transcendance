@@ -9,3 +9,4 @@ frontend/dist/
 .vscode/
 
 *.log
+powershell.cmd
