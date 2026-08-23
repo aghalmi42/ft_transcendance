@@ -10,7 +10,9 @@ import type {
   Friendship,
   LeaderboardEntry,
   GameMatchHistory,
-  AuthResponse
+  AuthResponse,
+  PostItem,
+  CommentItem
 } from '../types';
 
 import {
@@ -396,7 +398,97 @@ class ApiService {
   }
 
   // ===========================================================================
-  // 6. LOCAL STORAGE HELPERS
+  // 6. POSTS, COMMENTS & LIKES ENDPOINTS
+  // ===========================================================================
+  public async getPosts(): Promise<PostItem[]> {
+    try {
+      const posts = await this.request<PostItem[]>('/posts');
+      return Array.isArray(posts) ? posts : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public async getPostById(id: string): Promise<PostItem | null> {
+    try {
+      return await this.request<PostItem>(`/posts/${id}`);
+    } catch {
+      return null;
+    }
+  }
+
+  public async getPostsByUser(userId: string): Promise<PostItem[]> {
+    try {
+      const posts = await this.request<PostItem[]>(`/posts/user/${userId}`);
+      return Array.isArray(posts) ? posts : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public async createPost(content: string): Promise<PostItem> {
+    return this.request<PostItem>('/posts', {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  public async updatePost(id: string, content: string): Promise<PostItem> {
+    return this.request<PostItem>(`/posts/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  public async deletePost(id: string): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>(`/posts/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  public async getPostComments(postId: string): Promise<CommentItem[]> {
+    try {
+      const comments = await this.request<CommentItem[]>(`/posts/${postId}/comments`);
+      return Array.isArray(comments) ? comments : [];
+    } catch {
+      return [];
+    }
+  }
+
+  public async createComment(postId: string, content: string): Promise<CommentItem> {
+    return this.request<CommentItem>(`/posts/${postId}/comments`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  public async updateComment(id: string, content: string): Promise<CommentItem> {
+    return this.request<CommentItem>(`/comments/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ content }),
+    });
+  }
+
+  public async deleteComment(id: string): Promise<{ success: boolean }> {
+    return this.request<{ success: boolean }>(`/comments/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  public async togglePostLike(postId: string): Promise<{ liked: boolean }> {
+    return this.request<{ liked: boolean }>(`/posts/${postId}/like`, {
+      method: 'POST',
+    });
+  }
+
+  public async toggleCommentLike(commentId: string): Promise<{ liked: boolean }> {
+    return this.request<{ liked: boolean }>(`/comments/${commentId}/like`, {
+      method: 'POST',
+    });
+  }
+
+  // ===========================================================================
+  // 7. LOCAL STORAGE HELPERS
   // ===========================================================================
   public getLocalUser(): User | null {
     const raw = localStorage.getItem('active_user');

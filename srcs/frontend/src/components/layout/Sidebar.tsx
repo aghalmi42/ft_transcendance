@@ -37,8 +37,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       ],
     },
     {
-      category: 'COMMUNICATION',
+      category: 'COMMUNICATION & SOCIAL',
       items: [
+        { id: 'feed', label: 'Fil d’Actualité', icon: '📰' },
         { id: 'chat', label: 'Discussion & Défis 1v1', icon: '💬', count: messages.length > 0 ? messages.length : undefined },
         { id: 'friends', label: 'Liste d\'Amis', icon: '👥' },
       ],

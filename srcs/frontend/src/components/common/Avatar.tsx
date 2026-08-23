@@ -3,6 +3,7 @@ import type { UserStatus } from '../../types';
 
 interface AvatarProps {
   src?: string;
+  avatarUrl?: string;
   alt?: string;
   username?: string;
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -12,12 +13,14 @@ interface AvatarProps {
 
 export const Avatar: React.FC<AvatarProps> = ({
   src,
+  avatarUrl,
   alt = 'Avatar',
   username = '',
   size = 'md',
   status,
   className = '',
 }) => {
+  const actualSrc = src || avatarUrl;
   const sizeMap = {
     xs: 'w-6 h-6 text-[10px]',
     sm: 'w-8 h-8 text-xs',
@@ -45,13 +48,13 @@ export const Avatar: React.FC<AvatarProps> = ({
     ? username.slice(0, 2).toUpperCase()
     : 'U';
 
-  const avatarUrl = src || (username ? `https://api.dicebear.com/7.x/bottts/svg?seed=${username}` : undefined);
+  const finalAvatarUrl = actualSrc || (username ? `https://api.dicebear.com/7.x/bottts/svg?seed=${username}` : undefined);
 
   return (
     <div className={`relative inline-flex flex-shrink-0 ${className}`}>
-      {avatarUrl ? (
+      {finalAvatarUrl ? (
         <img
-          src={avatarUrl}
+          src={finalAvatarUrl}
           alt={alt || username}
           className={`${sizeMap} rounded-full object-cover bg-slate-800 border border-slate-700/80 shadow-inner`}
           onError={(e) => {

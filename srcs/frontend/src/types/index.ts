@@ -163,3 +163,42 @@ export interface NotificationItem {
   data?: any;
 }
 
+export interface PostLikeItem {
+  id: string;
+  userId?: string;
+  user?: User;
+  createdAt?: string;
+}
+
+export interface CommentLikeItem {
+  id: string;
+  userId?: string;
+  user?: User;
+  createdAt?: string;
+}
+
+export interface CommentItem {
+  id: string;
+  content: string;
+  author: User;
+  postId?: string;
+  likes?: CommentLikeItem[];
+  likesCount?: number;
+  isLiked?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PostItem {
+  id: string;
+  content: string;
+  author: User;
+  comments?: CommentItem[];
+  commentsCount?: number;
+  likes?: PostLikeItem[];
+  likesCount?: number;
+  isLiked?: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
