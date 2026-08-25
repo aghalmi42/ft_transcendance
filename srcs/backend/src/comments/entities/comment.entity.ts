@@ -1,14 +1,17 @@
+
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
+  OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 import { Post } from '../../posts/entities/post.entity';
+import { CommentLike } from '../../likes/entities/comment-like.entity';
 
 @Entity('comments')
 export class Comment {
@@ -27,6 +30,9 @@ export class Comment {
     onDelete: 'CASCADE',
   })
   post!: Post;
+
+  @OneToMany(() => CommentLike, (like) => like.comment)
+  likes!: CommentLike[];
 
   @CreateDateColumn()
   createdAt!: Date;

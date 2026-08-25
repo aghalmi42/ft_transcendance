@@ -1,0 +1,35 @@
+export const APP_CONFIG = {
+  API_BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:3001',
+  WS_BASE_URL: (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/^http/, 'ws'),
+
+  TIMING: {
+    OFFLINE_BYPASS_CACHE_MS: 12000,
+    PRESENCE_HEARTBEAT_MS: 15000,
+    TOAST_AUTO_DISMISS_MS: 3500,
+    RESPAWN_DELAY_MS: 1200,
+    PACMAN_RESPAWN_DELAY_MS: 10000,
+  },
+
+  PONG_RULES: {
+    DEFAULT_MAX_SCORE: 5,
+    PACMAN_MAX_GOALS: 3,
+    MIN_BALL_SPEED: 4,
+    MAX_BALL_SPEED: 18,
+    MIN_PACMAN_SIZE_PX: 7,
+    INITIAL_PACMAN_SIZE_PX: 26,
+  },
+
+  SHOOTACTOE_RULES: {
+    CANVAS_WIDTH: 1000,
+    CANVAS_HEIGHT: 650,
+    CELL_CAPTURE_DURATION_FRAMES: 300,
+  },
+
+  SNAKE_CTF_RULES: {
+    CANVAS_WIDTH: 1000,
+    CANVAS_HEIGHT: 650,
+    FLAGS_TO_WIN: 3,
+  }
+} as const;
+
+export default APP_CONFIG;

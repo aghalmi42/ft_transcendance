@@ -1,9 +1,12 @@
+
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Friendship } from './entities/friends.entity';
 import { User } from '../users/entities/user.entity';
 import { FriendshipStatus } from 'src/common/enums/friendship-status.enum';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../common/enums/notification-type.enum';
 
 @Injectable()
 export class FriendsService {
@@ -12,6 +15,7 @@ export class FriendsService {
     private readonly friendshipsRepository: Repository<Friendship>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async sendFriendRequest(sender: User, receiverId: string) {
@@ -41,12 +45,22 @@ export class FriendsService {
       status: FriendshipStatus.PENDING,
     });
 
-    return this.friendshipsRepository.save(friendship);
+    const saved = await this.friendshipsRepository.save(friendship);
+
+    await this.notificationsService.create({
+      recipient: receiver,
+      actor: sender,
+      type: NotificationType.FRIEND_REQUEST,
+      entityId: saved.id,
+    });
+
+    return saved;
   }
 
   async acceptFriendRequest(user: User, requestId: string) {
     const friendship = await this.friendshipsRepository.findOne({
       where: { id: requestId, receiver: { id: user.id } },
+      relations: ['sender'],
     });
 
     if (!friendship) {
@@ -54,7 +68,16 @@ export class FriendsService {
     }
 
     friendship.status = FriendshipStatus.ACCEPTED;
-    return this.friendshipsRepository.save(friendship);
+    const saved = await this.friendshipsRepository.save(friendship);
+
+    await this.notificationsService.create({
+      recipient: friendship.sender,
+      actor: user,
+      type: NotificationType.FRIEND_ACCEPTED,
+      entityId: saved.id,
+    });
+
+    return saved;
   }
 
   async getFriendsList(userId: string) {
