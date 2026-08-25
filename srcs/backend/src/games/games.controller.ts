@@ -26,10 +26,12 @@ export class GamesController {
     @CurrentUser() user: User,
     @Body() createGameDto: CreateGameDto,
   ) {
-    return this.gamesService.createGame(
+    const gameId = this.gamesService.createGame(
       user.id,
       createGameDto.opponentId,
     );
+
+    return { gameId };
   }
 
   @Post(':id/join')

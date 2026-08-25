@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -60,7 +61,11 @@ export class GamesService {
   ): void {
     const game = this.getGame(gameId);
 
-    game.join(playerId);
+    try {
+      game.join(playerId);
+    } catch (error) {
+      throw new BadRequestException(this.getGameErrorMessage(error));
+    }
   }
 
   
@@ -73,7 +78,11 @@ export class GamesService {
   ) {
     const game = this.getGame(gameId);
 
-    game.makeMove(playerId, position);
+    try {
+      game.makeMove(playerId, position);
+    } catch (error) {
+      throw new BadRequestException(this.getGameErrorMessage(error));
+    }
 
     const gameState = {
       gameId,
@@ -134,5 +143,9 @@ export class GamesService {
       playerXId: game.getPlayerXId(),
       playerOId: game.getPlayerOId(),
     };
+  }
+
+  private getGameErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'Action impossible.';
   }
 }
