@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { FriendsModule } from './friends/friends.module';
 import { PostsModule } from './posts/posts.module';
 import { CommentsModule } from './comments/comments.module';
+import { GamesModule } from './games/games.module';
 
 import databaseConfig from './config/database.config';
 
@@ -35,6 +36,7 @@ import databaseConfig from './config/database.config';
 
     PostsModule,
     CommentsModule,
+    GamesModule,
   ],
   controllers: [AppController], 
   providers: [AppService],
