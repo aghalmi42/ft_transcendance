@@ -6,6 +6,8 @@ import { Post } from '../posts/entities/post.entity';
 import { User } from '../users/entities/user.entity';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationType } from '../common/enums/notification-type.enum';
 
 @Injectable()
 export class CommentsService {
@@ -14,24 +16,37 @@ export class CommentsService {
     private readonly commentsRepository: Repository<Comment>,
     @InjectRepository(Post)
     private readonly postsRepository: Repository<Post>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
-  async create(
-    author: User,
-    postId: string,
-    createCommentDto: CreateCommentDto,
-  ): Promise<Comment> {
-    const post = await this.postsRepository.findOneBy({ id: postId });
-    if (!post) {
-      throw new NotFoundException('Post introuvable.');
-    }
-    const comment = this.commentsRepository.create({
-      content: createCommentDto.content,
-      author,
-      post,
-    });
-    return this.commentsRepository.save(comment);
+async create(
+  author: User,
+  postId: string,
+  createCommentDto: CreateCommentDto,
+): Promise<Comment> {
+  const post = await this.postsRepository.findOne({
+    where: { id: postId },
+    relations: ['author'],
+  });
+  if (!post) {
+    throw new NotFoundException('Post introuvable.');
   }
+  const comment = this.commentsRepository.create({
+    content: createCommentDto.content,
+    author,
+    post,
+  });
+  const saved = await this.commentsRepository.save(comment);
+
+  await this.notificationsService.create({
+    recipient: post.author,
+    actor: author,
+    type: NotificationType.POST_COMMENTED,
+    entityId: post.id,
+  });
+
+  return saved;
+}
 
   async findAllByPost(postId: string): Promise<Comment[]> {
     const post = await this.postsRepository.findOneBy({ id: postId });

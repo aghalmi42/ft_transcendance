@@ -1,3 +1,4 @@
+
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -10,6 +11,7 @@ import {
 import { User } from '../../users/entities/user.entity';
 import { OneToMany } from 'typeorm';
 import { Comment } from '../../comments/entities/comment.entity';
+import { PostLike } from '../../likes/entities/post-like.entity';
 
 @Entity('posts')
 export class Post {
@@ -26,6 +28,9 @@ export class Post {
 
   @OneToMany(() => Comment, (comment) => comment.post)
   comments!: Comment[];
+
+  @OneToMany(() => PostLike, (like) => like.post)
+  likes!: PostLike[];
 
   @CreateDateColumn()
   createdAt!: Date;

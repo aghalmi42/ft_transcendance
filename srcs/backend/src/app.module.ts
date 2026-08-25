@@ -9,6 +9,10 @@ import { FriendsModule } from './friends/friends.module';
 import { PostsModule } from './posts/posts.module';
 import { CommentsModule } from './comments/comments.module';
 import { GamesModule } from './games/games.module';
+import { LikesModule } from './likes/likes.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { ChatModule } from './chat/chat.module';
+import { SearchModule } from './search/search.module';
 
 import databaseConfig from './config/database.config';
 
@@ -37,6 +41,10 @@ import databaseConfig from './config/database.config';
     PostsModule,
     CommentsModule,
     GamesModule,
+    LikesModule,
+    NotificationsModule,
+    ChatModule,
+    SearchModule,
   ],
   controllers: [AppController], 
   providers: [AppService],
