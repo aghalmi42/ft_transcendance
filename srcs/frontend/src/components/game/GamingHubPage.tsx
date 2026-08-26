@@ -5,6 +5,7 @@ import { SnakeOutTheFlagGame } from '../../games/snakeouttheflag/SnakeOutTheFlag
 import { InGameChatOverlay } from '../chat/InGameChatOverlay';
 import { PublicUserProfileModal } from '../profile/PublicUserProfileModal';
 import type { User } from '../../types';
+import { TicTacToeLobby } from '../../games/tictactoe/TicTacToeLobby';
 
 interface GamingHubPageProps {
   onNavigate?: (tabId: string) => void;
@@ -25,6 +26,7 @@ export const GamingHubPage: React.FC<GamingHubPageProps> = ({
     if (initialGame === 'shootactoe' || initialGame === 'shoo-tac-toe') return 'ShooTacToe Dominion';
     if (initialGame === 'snakeouttheflag' || initialGame === 'snake-ctf') return 'Snake Out the Flag';
     if (initialGame === 'hungrygoal' || initialGame === 'hungry-goal' || initialGame === 'reverse-hockey') return 'Hungry Goal Hockey';
+    if (initialGame === 'tictactoe' || initialGame === 'tic-tac-toe') return 'Tic-Tac-Toe'
     return 'Pong RPG 2D';
   };
 
@@ -45,6 +47,8 @@ export const GamingHubPage: React.FC<GamingHubPageProps> = ({
         <SnakeOutTheFlagGame onNavigate={onNavigate} />
       ) : (initialGame === 'hungrygoal' || initialGame === 'hungry-goal' || initialGame === 'reverse-hockey') ? (
         <PongGame initialMatchSize="PACMAN_GOAL" />
+      ) : (initialGame === 'tictactoe' || initialGame === 'tic-tac-toe') ? (
+        <TicTacToeLobby />
       ) : (
         <PongGame
           initialDuelRoomId={initialDuelRoomId}

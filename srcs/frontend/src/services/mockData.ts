@@ -243,4 +243,12 @@ export const MOCK_GAMES_CATALOG: GameInfo[] = [
     bannerGradient: 'from-slate-900 via-emerald-950 to-slate-900', isPlayable: true,
     statusText: 'Prêt à jouer • 60 FPS', releaseYear: 'Nouveau',
   },
+  {
+    id: 'tictactoe', title: 'Tic-Tac-Toe',
+    genre: 'Board game & Puzzle', category: 'PUZZLE', icon: '❌⭕',
+    players: '1v1',
+    tags: ['Tour par Tour', 'Stratégie Classique', 'Défi entre Amis'],
+    bannerGradient: 'from-slate-900 via-emerald-950 to-slate-900', isPlayable: true,
+    statusText: 'Prêt à jouer • 60 FPS', releaseYear: 'Nouveau',
+  }
 ];
