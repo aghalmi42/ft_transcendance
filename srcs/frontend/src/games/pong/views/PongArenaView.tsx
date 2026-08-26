@@ -24,8 +24,7 @@ import type {
 } from '../types';
 import { HERO_CONFIGS, MAP_CONFIGS } from '../configs';
 import { soundEffects } from '../../../services/audio';
-import { cosmeticsStore } from '../../../services/cosmeticsStore';
-import { drawUnifiedPaddle, getHeroEquippedLoadout } from '../renderers/PaddleRenderer';
+import { drawUnifiedPaddle } from '../renderers/PaddleRenderer';
 import type { PaddleVisualLoadout } from '../renderers/PaddleRenderer';
 
 interface PongArenaViewProps {
@@ -191,13 +190,6 @@ export const PongArenaView: React.FC<PongArenaViewProps> = ({
     const newPlayers: PlayerEntity[] = [];
     const cfg = HERO_CONFIGS[userRole];
 
-    const inv = cosmeticsStore.getInventory();
-    const equippedSkin = inv.find(it => it.characterRole === userRole && it.kind === 'SKIN' && it.isEquipped);
-    const equippedWeapon = inv.find(it => it.characterRole === userRole && it.kind === 'WEAPON' && it.isEquipped);
-    const equippedGlow = inv.find(it => it.characterRole === userRole && it.kind === 'GLOW' && it.isEquipped);
-    const equippedAura = inv.find(it => it.characterRole === userRole && it.kind === 'AURA' && it.isEquipped);
-    const equippedTrail = inv.find(it => it.characterRole === userRole && it.kind === 'TRAIL' && it.isEquipped);
-
     newPlayers.push({
       id: 'blue-0',
       name: playerName,
@@ -251,18 +243,11 @@ export const PongArenaView: React.FC<PongArenaViewProps> = ({
       immuneUntil: 0,
       lastShootTime: 0,
       lastSpellTime: 0,
-      color: equippedSkin?.primaryColor || (selectedSkin ? selectedSkin.primaryColor : cfg.color),
-      customSkinColor: equippedSkin?.primaryColor || (selectedSkin ? selectedSkin.primaryColor : undefined),
-      customSecondaryColor: equippedSkin?.secondaryColor || (selectedSkin ? (selectedSkin.secondaryColor || selectedSkin.primaryColor) : equippedSkin?.primaryColor),
-      customGlowColor: equippedGlow?.glowColor,
-      customAuraColor: equippedAura?.glowColor,
-      customTrailColor: equippedTrail?.glowColor,
-      customWeaponId: equippedWeapon?.id,
-      customWeaponName: equippedWeapon?.name,
-      customWeaponIcon: equippedWeapon?.icon,
-      customWeaponColor: equippedWeapon?.primaryColor,
-      customSkinRarity: equippedSkin?.rarity || (selectedSkin ? selectedSkin.rarity : undefined),
-      customSkinStars: equippedSkin?.stars || (selectedSkin ? 6 : 3),
+      color: selectedSkin ? selectedSkin.primaryColor : cfg.color,
+      customSkinColor: selectedSkin ? selectedSkin.primaryColor : undefined,
+      customSecondaryColor: selectedSkin ? (selectedSkin.secondaryColor || selectedSkin.primaryColor) : undefined,
+      customSkinRarity: selectedSkin ? selectedSkin.rarity : undefined,
+      customSkinStars: selectedSkin ? 6 : 3,
     });
 
     if (mode === 'PRACTICE') {

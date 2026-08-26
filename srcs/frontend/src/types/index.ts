@@ -7,6 +7,15 @@ export const UserStatus = {
 
 export type UserStatus = 'ONLINE' | 'IN_GAME' | 'AWAY' | 'OFFLINE';
 
+export const UserRole = {
+  ADMIN: 'admin',
+  MODERATOR: 'moderator',
+  USER: 'user',
+  GUEST: 'guest',
+} as const;
+
+export type UserRole = 'admin' | 'moderator' | 'user' | 'guest';
+
 export interface User {
   id: string;
   username: string;
@@ -14,11 +23,13 @@ export interface User {
   avatar?: string;
   bio?: string;
   status: UserStatus;
+  role?: UserRole;
   level?: number;
   xp?: number;
   nextLevelXp?: number;
   wins?: number;
   losses?: number;
+  draws?: number;
   twoFactorEnabled?: boolean;
   eloRating?: number;
   createdAt?: string;
@@ -110,12 +121,22 @@ export interface GameMatchHistory {
   userScore?: number;
   myScore?: number;
   opponentScore?: number;
-  result: 'VICTORY' | 'DEFEAT';
+  result: 'VICTORY' | 'DEFEAT' | 'DRAW';
   gameMode?: string;
   duration?: string;
   durationSeconds?: number;
   xpEarned?: number;
   date: string;
+}
+
+export interface TicTacToeState {
+  gameId: string;
+  board: ('X' | 'O' | null)[];
+  currentPlayer: 'X' | 'O';
+  status: 'waiting' | 'playing' | 'finished' | 'draw';
+  winner: 'X' | 'O' | null;
+  playerXId: string;
+  playerOId: string;
 }
 
 export interface Achievement {

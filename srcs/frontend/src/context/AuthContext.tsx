@@ -11,10 +11,13 @@ interface AuthContextType {
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateProfile: (payload: Partial<User>) => Promise<void>;
+  uploadAvatar: (file: File) => Promise<void>;
+  refreshUser: () => Promise<void>;
   setStatus: (status: UserStatus) => Promise<void>;
-  toggle2FA: () => Promise<boolean>;
   deleteAccount: () => Promise<void>;
-  exportData: () => void;
+  exportData: () => Promise<void>;
+  oauthError: string | null;
+  clearOauthError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,10 +26,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(() => api.getLocalUser());
   const [token, setToken] = useState<string | null>(() => api.getToken());
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [oauthError, setOauthError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
     const initAuth = async () => {
+      // Pick up the token handed back by an OAuth redirect (e.g. "Se connecter avec 42"),
+      // which lands the browser back on "/?oauth_token=..." since this SPA has no router.
+      const params = new URLSearchParams(window.location.search);
+      const oauthToken = params.get('oauth_token');
+      const oauthError = params.get('oauth_error');
+      if (oauthToken || oauthError) {
+        if (oauthToken) api.setToken(oauthToken);
+        if (oauthError) setOauthError(oauthError);
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+
       const savedToken = api.getToken();
       if (savedToken) {
         try {
@@ -92,8 +107,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateProfile = async (payload: Partial<User>) => {
     if (!user) return;
-    const updated = await api.updateUser(user.id, payload);
+    const updated = await api.updateProfile(payload);
     setUser(updated);
+  };
+
+  const uploadAvatar = async (file: File) => {
+    if (!user) return;
+    const updated = await api.uploadAvatar(file);
+    setUser(updated);
+  };
+
+  const refreshUser = async () => {
+    if (!api.getToken()) return;
+    try {
+      const me = await api.getMe();
+      setUser(me);
+    } catch {
+      // transient failure (offline, expired token mid-session) — keep last known state
+    }
   };
 
   const setStatus = async (status: UserStatus) => {
@@ -101,14 +132,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const updated = { ...user, status };
     setUser(updated);
     api.saveLocalUser(updated);
-  };
-
-  const toggle2FA = async (): Promise<boolean> => {
-    if (!user) return false;
-    const newState = !user.twoFactorEnabled;
-    const updated = await api.updateUser(user.id, { twoFactorEnabled: newState });
-    setUser(updated);
-    return newState;
+    try {
+      await api.updateProfile({ status });
+    } catch (err) {
+      console.warn('[AuthContext] Failed to persist status change:', err);
+    }
   };
 
   const deleteAccount = async () => {
@@ -117,16 +145,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout();
   };
 
-  const exportData = () => {
+  // Pulls the real, server-side export (profile + posts + comments + likes +
+  // friendships + game history + notifications + messages) — no local/mock data.
+  const exportData = async () => {
     if (!user) return;
-    const data = {
-      profile: user,
-      exportDate: new Date().toISOString(),
-      platform: 'ft_transcendence',
-      history: api.getMatchHistorySync(),
-      leaderboard: api.getLeaderboardSync().find((l) => l.user.username === user.username),
-      gdprDisclaimer: "Conformément au RGPD, voici l'intégralité des données associées à votre compte utilisateur.",
-    };
+    const data = await api.exportGdprData();
 
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -148,10 +171,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         updateProfile,
+        uploadAvatar,
+        refreshUser,
         setStatus,
-        toggle2FA,
         deleteAccount,
         exportData,
+        oauthError,
+        clearOauthError: () => setOauthError(null),
       }}
     >
       {children}

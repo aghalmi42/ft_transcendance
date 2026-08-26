@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useGame } from '../../context/GameContext';
 import { useNotification } from '../../context/NotificationContext';
@@ -12,14 +12,25 @@ interface ProfileViewProps {
   onNavigate: (tabId: string) => void;
 }
 
+const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024;
+const ALLOWED_AVATAR_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
 export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate }) => {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, uploadAvatar } = useAuth();
   const { history } = useGame();
   const { addToast } = useNotification();
 
   const [isEditing, setIsEditing] = useState(false);
   const [bio, setBio] = useState(user?.bio || '');
   const [customAvatar, setCustomAvatar] = useState(user?.avatar || '');
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+
+  // Keep the pending "Enregistrer" avatar value in sync with a just-uploaded
+  // photo, otherwise saving a bio edit right after an upload would silently
+  // revert the avatar to whatever it was when the form was first opened.
+  useEffect(() => {
+    setCustomAvatar(user?.avatar || '');
+  }, [user?.avatar]);
 
   const AVATAR_PRESETS = [
     `https://api.dicebear.com/7.x/bottts/svg?seed=CyberBot`,
@@ -36,12 +47,41 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate }) => {
   const winRate = totalMatches > 0 ? (((user.wins || 0) / totalMatches) * 100).toFixed(1) : '0';
 
   const handleSaveProfile = async () => {
-    await updateProfile({
-      bio,
-      avatar: customAvatar,
-    });
-    setIsEditing(false);
-    addToast('Profil mis à jour avec succès !', 'success');
+    try {
+      await updateProfile({
+        bio,
+        avatar: customAvatar || undefined,
+      });
+      setIsEditing(false);
+      addToast('Profil mis à jour avec succès !', 'success');
+    } catch (err: any) {
+      addToast(err?.message || 'Impossible de mettre à jour le profil.', 'error');
+    }
+  };
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      addToast('Format non supporté (jpeg, png, webp ou gif requis).', 'error');
+      return;
+    }
+    if (file.size > MAX_AVATAR_SIZE_BYTES) {
+      addToast('Image trop lourde (2 Mo maximum).', 'error');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      await uploadAvatar(file);
+      addToast('Photo de profil mise à jour !', 'success');
+    } catch (err: any) {
+      addToast(err?.message || "Échec de l'envoi de l'image.", 'error');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
   };
 
   const matchColumns: Column<GameMatchHistory>[] = [
@@ -101,16 +141,30 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate }) => {
       <div className="rounded-xl bg-slate-900 border border-slate-800 p-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
-            <div className="relative group shrink-0">
-              <Avatar username={user.username} src={user.avatar} size="xl" status={user.status} />
+            <div className="shrink-0 space-y-2">
+              <div className="relative group">
+                <Avatar username={user.username} src={user.avatar} size="xl" status={user.status} />
+                {isEditing && (
+                  <button
+                    onClick={() => setCustomAvatar(`https://api.dicebear.com/7.x/bottts/svg?seed=seed_${Math.random().toString(36).substring(2, 7)}`)}
+                    className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Générer aléatoirement"
+                  >
+                    🎲 Nouveau
+                  </button>
+                )}
+              </div>
               {isEditing && (
-                <button
-                  onClick={() => setCustomAvatar(`https://api.dicebear.com/7.x/bottts/svg?seed=seed_${Math.random().toString(36).substring(2, 7)}`)}
-                  className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center text-xs text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Générer aléatoirement"
-                >
-                  🎲 Nouveau
-                </button>
+                <label className="block text-center text-[10px] font-mono text-violet-400 hover:text-violet-300 cursor-pointer underline">
+                  {isUploadingAvatar ? 'Envoi en cours...' : '📷 Importer une photo'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    className="hidden"
+                    onChange={handleAvatarFileChange}
+                    disabled={isUploadingAvatar}
+                  />
+                </label>
               )}
             </div>
 

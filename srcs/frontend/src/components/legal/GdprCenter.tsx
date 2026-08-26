@@ -18,10 +18,18 @@ export const GdprCenter: React.FC<GdprCenterProps> = ({ onNavigate }) => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
-  const handleExport = () => {
-    exportData();
-    addToast("Fichier d'exportation RGPD (JSON) téléchargé avec succès !", 'success');
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      await exportData();
+      addToast("Fichier d'exportation RGPD (JSON) téléchargé avec succès !", 'success');
+    } catch (err: any) {
+      addToast(err?.message || "Échec de l'export de vos données. Réessayez.", 'error');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleDelete = async (e: React.FormEvent) => {
@@ -37,6 +45,8 @@ export const GdprCenter: React.FC<GdprCenterProps> = ({ onNavigate }) => {
       addToast("Votre compte et l'intégralité de vos données ont été définitivement supprimés.", 'info');
       setIsDeleteModalOpen(false);
       onNavigate('home');
+    } catch (err: any) {
+      addToast(err?.message || 'Échec de la suppression du compte. Réessayez.', 'error');
     } finally {
       setIsDeleting(false);
     }
@@ -72,7 +82,7 @@ export const GdprCenter: React.FC<GdprCenterProps> = ({ onNavigate }) => {
           <Button variant="outline" size="sm" onClick={() => onNavigate('privacy')}>
             {"Politique RGPD"}
           </Button>
-          <Button variant="neon" size="sm" onClick={handleExport} leftIcon={<span>📥</span>}>
+          <Button variant="neon" size="sm" onClick={handleExport} isLoading={isExporting} leftIcon={<span>📥</span>}>
             {"Exporter mes données (JSON)"}
           </Button>
         </div>
@@ -91,7 +101,7 @@ export const GdprCenter: React.FC<GdprCenterProps> = ({ onNavigate }) => {
               <li>{"Historique complet des matchs et statistiques de jeu"}</li>
               <li>{"Liste des amis, requêtes et statuts de blocage"}</li>
             </ul>
-            <Button variant="secondary" size="sm" onClick={handleExport} className="w-full mt-2">
+            <Button variant="secondary" size="sm" onClick={handleExport} isLoading={isExporting} className="w-full mt-2">
               {"Télécharger mon Archive JSON"}
             </Button>
           </div>

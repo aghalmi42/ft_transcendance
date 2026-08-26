@@ -22,12 +22,48 @@ services:
     restart: always
     env_file:
       - .env
-    ports:
-      - "3001:3001"
-    
+    # No host port published here on purpose: every mandatory-part requirement
+    # ("any connection to the backend... must use HTTPS") is only actually
+    # satisfied if there's no plaintext path left standing next to the HTTPS
+    # one. The backend is still reachable from other containers on the
+    # compose network (e.g. https-proxy) via "backend:3001" without this.
+    expose:
+      - "3001"
+
     volumes:
       - ./backend:/app
       - backend_node_modules:/app/node_modules
+    depends_on:
+      - postgres
+
+  https-proxy:
+    build:
+      context: ./nginx
+    container_name: transcendence_https_proxy
+    restart: always
+    ports:
+      # Host-side 8443 (not 443): this stack runs under rootless Podman, which
+      # cannot bind ports <1024 without extra host privileges. nginx still
+      # terminates TLS on 443 *inside* the container — see nginx.conf.
+      - "8443:443"
+    volumes:
+      - nginx_certs:/etc/nginx/certs
+    depends_on:
+      - backend
+
+  db-backup:
+    image: postgres:16-bookworm
+    container_name: transcendence_db_backup
+    restart: always
+    env_file:
+      - .env
+    environment:
+      BACKUP_INTERVAL_SECONDS: "86400"
+      BACKUP_RETENTION_DAYS: "7"
+    entrypoint: ["/bin/sh", "/scripts/backup-loop.sh"]
+    volumes:
+      - ./backups:/backups
+      - ./scripts:/scripts:ro
     depends_on:
       - postgres
 
@@ -40,6 +76,7 @@ services:
       - "5173:5173"
     environment:
       BACKEND_URL: http://backend:3001
+      VITE_API_URL: ${VITE_API_URL:-https://localhost}
     volumes:
       - ./frontend:/app
       - frontend_node_modules:/app/node_modules
@@ -52,3 +89,4 @@ volumes:
   postgres_data:
   backend_node_modules:
   frontend_node_modules:
+  nginx_certs:

@@ -3,6 +3,10 @@
 /node_modules
 /build
 
+# user-uploaded content
+/uploads/**
+!/uploads/avatars/.gitkeep
+
 # Logs
 logs
 *.log

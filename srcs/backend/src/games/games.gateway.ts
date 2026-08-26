@@ -2,6 +2,7 @@ import {
   ConnectedSocket,
   MessageBody,
   OnGatewayConnection,
+  OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
@@ -22,7 +23,7 @@ type MoveResult = GameState | { error: string };
   namespace: '/games',
   cors: { origin: true, credentials: true },
 })
-export class GamesGateway implements OnGatewayConnection {
+export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   private server!: Server;
 
@@ -38,8 +39,20 @@ export class GamesGateway implements OnGatewayConnection {
       if (!token) throw new Error('Token manquant.');
       const payload = this.jwtService.verify<{ sub: string }>(token);
       client.data.userId = payload.sub;
+      client.data.gameIds = new Set<string>();
     } catch {
       client.disconnect(true);
+    }
+  }
+
+  // Lets the opponent know a player dropped mid-game instead of the room
+  // just going silent, without tearing down the (still-resumable) game state.
+  handleDisconnect(client: Socket): void {
+    const gameIds: Set<string> | undefined = client.data.gameIds;
+    if (!gameIds || !client.data.userId) return;
+
+    for (const gameId of gameIds) {
+      this.server.to(gameId).emit('game:opponentDisconnected', { gameId, userId: client.data.userId });
     }
   }
 
@@ -50,6 +63,7 @@ export class GamesGateway implements OnGatewayConnection {
   ): GameState {
     const state = this.getAuthorizedGameState(client, event.gameId);
     client.join(event.gameId);
+    (client.data.gameIds ??= new Set<string>()).add(event.gameId);
     this.server.to(event.gameId).emit('game:state', state);
     return state;
   }

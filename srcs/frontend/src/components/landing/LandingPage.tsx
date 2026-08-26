@@ -1,17 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
-import { TwoFactorModal } from '../auth/TwoFactorModal';
+import { API_BASE_URL, api } from '../../services/api';
 
 interface LandingPageProps {
   onLoginSuccess: () => void;
-  onNavigateLegal?: (page: 'terms' | 'privacy' | 'gdpr') => void;
+  onNavigateLegal?: (page: 'terms' | 'privacy' | 'gdpr' | 'status') => void;
 }
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess, onNavigateLegal }) => {
-  const { login, register } = useAuth();
+  const { login, register, oauthError, clearOauthError } = useAuth();
   const { addToast } = useNotification();
 
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
@@ -21,8 +21,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess, onNavi
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [show2FA, setShow2FA] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [fortyTwoAvailable, setFortyTwoAvailable] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (oauthError) {
+      addToast(oauthError, 'error');
+      clearOauthError();
+    }
+  }, [oauthError, addToast, clearOauthError]);
+
+  useEffect(() => {
+    api.getFortyTwoStatus().then(({ configured }) => setFortyTwoAvailable(configured));
+  }, []);
+
+  const handleFortyTwoLogin = () => {
+    if (!fortyTwoAvailable) return;
+    window.location.href = `${API_BASE_URL}/auth/42`;
+  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,11 +47,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess, onNavi
     if (!password) errs.password = 'Mot de passe requis';
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
-
-    if (email.includes('valkyrie') || email.includes('2fa')) {
-      setShow2FA(true);
-      return;
-    }
 
     setLoading(true);
     try {
@@ -75,17 +86,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess, onNavi
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center p-4 bg-slate-950 font-sans text-left">
-      {show2FA && (
-        <TwoFactorModal
-          isOpen={show2FA}
-          onClose={() => setShow2FA(false)}
-          onSuccess={() => {
-            setShow2FA(false);
-            onLoginSuccess();
-          }}
-        />
-      )}
-
       <div className="max-w-md w-full bg-slate-900 border border-slate-800 p-8 rounded-3xl shadow-2xl space-y-6">
         <div className="text-center space-y-2">
           <div className="w-12 h-12 bg-gradient-to-tr from-cyan-500 to-indigo-600 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-lg">
@@ -135,6 +135,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess, onNavi
           </form>
         )}
 
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 text-[10px] text-slate-600 uppercase font-mono">
+            <span className="flex-1 h-px bg-slate-800" />
+            ou
+            <span className="flex-1 h-px bg-slate-800" />
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            className="w-full"
+            onClick={handleFortyTwoLogin}
+            disabled={!fortyTwoAvailable}
+            title={fortyTwoAvailable === false ? "Non configuré côté serveur pour l'instant" : undefined}
+          >
+            {fortyTwoAvailable === false ? 'Connexion 42 non disponible' : 'Se connecter avec 42'}
+          </Button>
+        </div>
+
         {onNavigateLegal && (
           <div className="flex justify-center gap-4 text-[11px] text-slate-500 border-t border-slate-800 pt-4">
             <button onClick={() => onNavigateLegal('terms')} className="hover:text-slate-300">CGU</button>
@@ -142,6 +161,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess, onNavi
             <button onClick={() => onNavigateLegal('privacy')} className="hover:text-slate-300">Confidentialité</button>
             <span>•</span>
             <button onClick={() => onNavigateLegal('gdpr')} className="hover:text-slate-300">RGPD</button>
+            <span>•</span>
+            <button onClick={() => onNavigateLegal('status')} className="hover:text-slate-300">État du service</button>
           </div>
         )}
       </div>

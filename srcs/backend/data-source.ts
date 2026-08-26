@@ -12,6 +12,10 @@ import { CommentLike } from './src/likes/entities/comment-like.entity';
 import { Notification } from './src/notifications/entities/notification.entity';
 import { Conversation } from './src/chat/entities/conversation.entity';
 import { Message } from './src/chat/entities/message.entity';
+import { ApiKey } from './src/api-keys/entities/api-key.entity';
+import { Tournament } from './src/tournaments/entities/tournament.entity';
+import { TournamentParticipant } from './src/tournaments/entities/tournament-participant.entity';
+import { TournamentMatch } from './src/tournaments/entities/tournament-match.entity';
 
 dotenv.config({
   path: path.resolve(__dirname, '../.env'),
@@ -28,7 +32,8 @@ export const AppDataSource = new DataSource({
   database: process.env.POSTGRES_DB,
 
   entities: [
-    User, Friendship, Post, Comment, GameResult, PostLike, CommentLike, Notification, Conversation, Message
+    User, Friendship, Post, Comment, GameResult, PostLike, CommentLike, Notification, Conversation, Message,
+    ApiKey, Tournament, TournamentParticipant, TournamentMatch,
   ],
 
   migrations: [

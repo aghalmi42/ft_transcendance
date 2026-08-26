@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import type { User, GameMatchHistory } from '../../types';
 import { Avatar } from '../common/Avatar';
 import { useAuth } from '../../context/AuthContext';
 import { useChat } from '../../context/ChatContext';
 import { useNotification } from '../../context/NotificationContext';
-import { MOCK_MATCH_HISTORY } from '../../services/mockData';
+import { api } from '../../services/api';
 import { soundEffects } from '../../services/audio';
 
 interface PublicUserProfileModalProps {
@@ -26,7 +26,13 @@ export const PublicUserProfileModal: React.FC<PublicUserProfileModalProps> = ({
   const { setActiveFriendId, sendGameChallenge } = useChat();
   const { addToast } = useNotification();
 
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'HISTORY' | 'ACHIEVEMENTS'>('OVERVIEW');
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'HISTORY'>('OVERVIEW');
+  const [userMatches, setUserMatches] = useState<GameMatchHistory[]>([]);
+
+  useEffect(() => {
+    if (!isOpen || !user) return;
+    api.getMatchHistoryFor(user.id).then(setUserMatches);
+  }, [isOpen, user]);
 
   if (!isOpen || !user) return null;
 
@@ -34,10 +40,6 @@ export const PublicUserProfileModal: React.FC<PublicUserProfileModalProps> = ({
   const totalMatches = (user.wins || 0) + (user.losses || 0);
   const winRate = totalMatches > 0 ? (((user.wins || 0) / totalMatches) * 100).toFixed(1) : '0';
   const elo = user.eloRating || 1200 + (user.wins || 0) * 18 - (user.losses || 0) * 12;
-
-  const userMatches: GameMatchHistory[] = MOCK_MATCH_HISTORY.filter(
-    (m) => m.opponentName === user.username
-  );
 
   const handleSendMessage = () => {
     setActiveFriendId(user.id);
@@ -167,14 +169,6 @@ export const PublicUserProfileModal: React.FC<PublicUserProfileModalProps> = ({
           >
             ⚔️ Historique de Matchs
           </button>
-          <button
-            onClick={() => setActiveTab('ACHIEVEMENTS')}
-            className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
-              activeTab === 'ACHIEVEMENTS' ? 'bg-cyan-950 text-cyan-400 border border-cyan-500/40' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            🎖️ Succès & Rangs
-          </button>
         </div>
 
         {}
@@ -198,27 +192,6 @@ export const PublicUserProfileModal: React.FC<PublicUserProfileModalProps> = ({
                 <span className="text-lg font-black text-cyan-400">{winRate}%</span>
               </div>
             </div>
-
-            <div className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800 space-y-2">
-              <h4 className="text-xs font-mono font-bold uppercase text-slate-300">Spécialisation de Jeux :</h4>
-              <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono">
-                <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                  <span className="text-base block">🏓</span>
-                  <span className="font-bold text-white">Pong RPG</span>
-                  <span className="text-[10px] text-cyan-400 block">{user.wins || 0}W - {user.losses || 0}L</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                  <span className="text-base block">🚀</span>
-                  <span className="font-bold text-white">ShooTacToe</span>
-                  <span className="text-[10px] text-cyan-400 block">Dominion 60 FPS</span>
-                </div>
-                <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800">
-                  <span className="text-base block">🐍</span>
-                  <span className="font-bold text-white">Snake CTF</span>
-                  <span className="text-[10px] text-emerald-400 block">Castle Wars</span>
-                </div>
-              </div>
-            </div>
           </div>
         )}
 
@@ -232,7 +205,7 @@ export const PublicUserProfileModal: React.FC<PublicUserProfileModalProps> = ({
                   className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs font-mono"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-base">{m.gameType === 'PONG' ? '🏓' : '🚀'}</span>
+                    <span className="text-base">{m.gameType === 'TICTACTOE' ? '⭕' : '🏓'}</span>
                     <div>
                       <span className="font-bold text-white block">vs {m.opponentName}</span>
                       <span className="text-[10px] text-slate-500">{m.date}</span>
@@ -243,7 +216,7 @@ export const PublicUserProfileModal: React.FC<PublicUserProfileModalProps> = ({
                     <span className={`font-black ${m.result === 'VICTORY' ? 'text-emerald-400' : 'text-rose-400'}`}>
                       {m.result === 'VICTORY' ? 'VICTOIRE' : 'DÉFAITE'} ({(m.myScore ?? m.userScore ?? 0)} - {m.opponentScore ?? 0})
                     </span>
-                    <span className="text-[10px] text-slate-500 block">+{m.xpEarned || 50} XP</span>
+                    <span className="text-[10px] text-slate-500 block">+{m.xpEarned || 0} XP</span>
                   </div>
                 </div>
               ))
@@ -252,40 +225,6 @@ export const PublicUserProfileModal: React.FC<PublicUserProfileModalProps> = ({
                 Aucun match récent enregistré pour ce joueur.
               </div>
             )}
-          </div>
-        )}
-
-        {}
-        {activeTab === 'ACHIEVEMENTS' && (
-          <div className="grid grid-cols-2 gap-2.5 font-mono text-xs">
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-2.5">
-              <span className="text-xl">🌟</span>
-              <div>
-                <span className="font-bold text-white block">Premier Sang</span>
-                <span className="text-[10px] text-slate-400">Première victoire en match</span>
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-2.5">
-              <span className="text-xl">🚀</span>
-              <div>
-                <span className="font-bold text-white block">As de l'Espace</span>
-                <span className="text-[10px] text-slate-400">Alignement 4v4 sur ShooTacToe</span>
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-2.5">
-              <span className="text-xl">🚩</span>
-              <div>
-                <span className="font-bold text-white block">Voleur de Drapeau</span>
-                <span className="text-[10px] text-slate-400">Capture dans Snake Castle Wars</span>
-              </div>
-            </div>
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center gap-2.5">
-              <span className="text-xl">🛡️</span>
-              <div>
-                <span className="font-bold text-white block">Rempart Imprenable</span>
-                <span className="text-[10px] text-slate-400">Match parfait sans but encaissé</span>
-              </div>
-            </div>
           </div>
         )}
       </div>

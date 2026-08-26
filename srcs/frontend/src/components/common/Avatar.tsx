@@ -1,5 +1,15 @@
 import React from 'react';
 import type { UserStatus } from '../../types';
+import { API_BASE_URL } from '../../services/api';
+
+// Uploaded avatars come back from the backend as a relative path
+// ("/uploads/avatars/xxx.png"); the frontend runs on a different origin/port,
+// so that path must be resolved against the backend, not the current page.
+const resolveAvatarSrc = (src?: string): string | undefined => {
+  if (!src) return undefined;
+  if (src.startsWith('/')) return `${API_BASE_URL}${src}`;
+  return src;
+};
 
 interface AvatarProps {
   src?: string;
@@ -20,7 +30,7 @@ export const Avatar: React.FC<AvatarProps> = ({
   status,
   className = '',
 }) => {
-  const actualSrc = src || avatarUrl;
+  const actualSrc = resolveAvatarSrc(src || avatarUrl);
   const sizeMap = {
     xs: 'w-6 h-6 text-[10px]',
     sm: 'w-8 h-8 text-xs',

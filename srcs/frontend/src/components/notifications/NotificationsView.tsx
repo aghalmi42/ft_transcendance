@@ -3,7 +3,6 @@ import type { NotificationItem } from '../../types';
 import { api } from '../../services/api';
 import { soundEffects } from '../../services/audio';
 import { useNotification } from '../../context/NotificationContext';
-import { MOCK_NOTIFICATION_ITEMS } from '../../services/mockData';
 import { Button } from '../common/Button';
 import { Card } from '../common/Card';
 
@@ -24,13 +23,9 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
     try {
       setLoading(true);
       const data = await api.getNotifications();
-      if (Array.isArray(data) && data.length > 0) {
-        setNotifications(data);
-      } else {
-        setNotifications(MOCK_NOTIFICATION_ITEMS);
-      }
+      setNotifications(Array.isArray(data) ? data : []);
     } catch {
-      setNotifications(MOCK_NOTIFICATION_ITEMS);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }

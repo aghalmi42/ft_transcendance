@@ -12,8 +12,6 @@ import { GdprCenter } from './components/legal/GdprCenter';
 
 import { GameCatalog } from './components/game/GameCatalog';
 import { GamingHubPage } from './components/game/GamingHubPage';
-import { ShopView } from './components/shop/ShopView';
-import { InventoryView } from './components/inventory/InventoryView';
 import { MatchHistoryPage } from './components/profile/MatchHistoryPage';
 import { TournamentView } from './components/tournament/TournamentView';
 import { ChatView } from './components/chat/ChatView';
@@ -26,6 +24,8 @@ import { NotificationsView } from './components/notifications/NotificationsView'
 import { SettingsView } from './components/profile/SettingsView';
 import { KeybindsSettingsView } from './components/profile/KeybindsSettingsView';
 import { AboutView } from './components/legal/AboutView';
+import { AdminUsersView } from './components/admin/AdminUsersView';
+import { StatusPage } from './components/status/StatusPage';
 
 const MainRouter: React.FC = () => {
   const { user } = useAuth();
@@ -61,7 +61,7 @@ const MainRouter: React.FC = () => {
   };
 
   if (!user) {
-    if (['terms', 'privacy', 'gdpr'].includes(currentTab)) {
+    if (['terms', 'privacy', 'gdpr', 'status'].includes(currentTab)) {
       return (
         <div className="min-h-screen bg-slate-950 text-slate-100 p-6 flex flex-col items-center">
           <div className="max-w-4xl w-full space-y-4">
@@ -74,6 +74,7 @@ const MainRouter: React.FC = () => {
             {currentTab === 'terms' && <TermsOfService onNavigate={navigate} />}
             {currentTab === 'privacy' && <PrivacyPolicy onNavigate={navigate} />}
             {currentTab === 'gdpr' && <GdprCenter onNavigate={navigate} />}
+            {currentTab === 'status' && <StatusPage onNavigate={navigate} />}
           </div>
         </div>
       );
@@ -114,12 +115,9 @@ const MainRouter: React.FC = () => {
       {currentTab === 'tournaments' && <TournamentView onNavigate={navigate} />}
       {currentTab === 'chat' && <ChatView onNavigate={navigate} />}
       {currentTab === 'friends' && <FriendsList onNavigate={navigate} />}
-      {currentTab === 'shop' && <ShopView onNavigate={navigate} />}
-      {(currentTab === 'inventory' || currentTab === 'casier' || currentTab === 'atelier') && (
-        <InventoryView onNavigate={navigate} />
-      )}
 
       {currentTab === 'profile' && <ProfileView onNavigate={navigate} />}
+      {currentTab === 'admin' && user.role === 'admin' && <AdminUsersView onNavigate={navigate} />}
 
       {currentTab === 'history' && <MatchHistoryPage onNavigate={navigate} />}
       {(currentTab === 'controls' || currentTab === 'keybinds') && <KeybindsSettingsView onNavigate={navigate} />}
@@ -128,6 +126,7 @@ const MainRouter: React.FC = () => {
       {currentTab === 'privacy' && <PrivacyPolicy onNavigate={navigate} />}
       {currentTab === 'gdpr' && <GdprCenter onNavigate={navigate} />}
       {currentTab === 'about' && <AboutView onNavigate={navigate} />}
+      {currentTab === 'status' && <StatusPage onNavigate={navigate} />}
     </Layout>
   );
 };

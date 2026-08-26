@@ -80,6 +80,35 @@ export class FriendsService {
     return saved;
   }
 
+  async declineFriendRequest(user: User, requestId: string) {
+    const friendship = await this.friendshipsRepository.findOne({
+      where: { id: requestId, receiver: { id: user.id }, status: FriendshipStatus.PENDING },
+    });
+
+    if (!friendship) {
+      throw new NotFoundException("Demande d'ami introuvable.");
+    }
+
+    await this.friendshipsRepository.remove(friendship);
+    return { success: true };
+  }
+
+  async removeFriend(userId: string, friendId: string) {
+    const friendship = await this.friendshipsRepository.findOne({
+      where: [
+        { sender: { id: userId }, receiver: { id: friendId }, status: FriendshipStatus.ACCEPTED },
+        { sender: { id: friendId }, receiver: { id: userId }, status: FriendshipStatus.ACCEPTED },
+      ],
+    });
+
+    if (!friendship) {
+      throw new NotFoundException('Relation amicale introuvable.');
+    }
+
+    await this.friendshipsRepository.remove(friendship);
+    return { success: true };
+  }
+
   async getFriendsList(userId: string) {
     const friendships = await this.friendshipsRepository.find({
       where: [

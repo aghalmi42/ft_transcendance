@@ -1,4 +1,4 @@
-import { Controller, Post, Param, UseGuards, Patch, Get } from '@nestjs/common';
+import { Controller, Post, Param, UseGuards, Patch, Get, Delete } from '@nestjs/common';
 import { FriendsService } from './friends.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -17,6 +17,16 @@ export class FriendsController {
   @Patch('accept/:requestId')
   acceptRequest(@CurrentUser() user: User, @Param('requestId') requestId: string) {
     return this.friendsService.acceptFriendRequest(user, requestId);
+  }
+
+  @Patch('decline/:requestId')
+  declineRequest(@CurrentUser() user: User, @Param('requestId') requestId: string) {
+    return this.friendsService.declineFriendRequest(user, requestId);
+  }
+
+  @Delete(':friendId')
+  removeFriend(@CurrentUser('id') userId: string, @Param('friendId') friendId: string) {
+    return this.friendsService.removeFriend(userId, friendId);
   }
 
   @Get()

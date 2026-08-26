@@ -5,7 +5,11 @@ import type {
   Friendship,
   LeaderboardEntry,
   GameMatchHistory,
-  AuthResponse
+  AuthResponse,
+  TicTacToeState,
+  Tournament,
+  TournamentPlayer,
+  TournamentMatch
 } from '../types';
 import {
   MOCK_USERS,
@@ -17,6 +21,47 @@ import {
 import { APP_CONFIG } from '../config/appConfig';
 
 export const API_BASE_URL = APP_CONFIG.API_BASE_URL;
+
+const mapTournamentPlayer = (u: any, seed?: number): TournamentPlayer | null => {
+  if (!u) return null;
+  return { id: u.id, username: u.username, avatar: u.avatar, seed: seed ?? 0 };
+};
+
+const mapTournament = (raw: any): Tournament => ({
+  id: raw.id,
+  name: raw.name,
+  size: raw.size,
+  status: raw.status,
+  players: (raw.participants || []).map((p: any) => mapTournamentPlayer(p.user, p.seed)).filter(Boolean),
+  matches: (raw.matches || []).map((m: any): TournamentMatch => ({
+    id: m.id,
+    round: m.round,
+    matchNumber: m.matchNumber,
+    player1: mapTournamentPlayer(m.player1),
+    player2: mapTournamentPlayer(m.player2),
+    score1: m.score1,
+    score2: m.score2,
+    winner: mapTournamentPlayer(m.winner),
+    isCompleted: m.isCompleted,
+  })),
+  champion: mapTournamentPlayer(raw.champion),
+  createdAt: raw.createdAt,
+});
+
+const mapMatchHistoryList = (raw: any): GameMatchHistory[] => {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((m) => ({
+    id: m.id, gameType: m.gameType || 'PONG', opponentName: m.opponentName || 'Adversaire',
+    opponentAvatar: m.opponentAvatar,
+    userScore: m.player1Score || 0, opponent: m.opponentName || 'Adversaire',
+    myScore: m.player1Score || 0, opponentScore: m.player2Score || 0,
+    result: (m.result || 'VICTORY') as 'VICTORY' | 'DEFEAT' | 'DRAW',
+    gameMode: m.matchSize || '1v1',
+    date: m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'Aujourd\'hui',
+    duration: m.durationSeconds ? `${Math.floor(m.durationSeconds / 60)}:${(m.durationSeconds % 60).toString().padStart(2, '0')}` : undefined,
+    xpEarned: m.result === 'VICTORY' ? 50 : m.result === 'DRAW' ? 20 : 10,
+  }));
+};
 
 class ApiService {
   private token: string | null = localStorage.getItem('token');
@@ -42,20 +87,32 @@ class ApiService {
     if (Date.now() - this.lastBackendFailure < 12000 && !this.backendAvailable) {
       throw new Error('Backend offline');
     }
+    let res: Response;
     try {
-      const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+      res = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers: { ...this.getHeaders(), ...(options.headers || {}) },
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      this.backendAvailable = true;
-      this.lastBackendFailure = 0;
-      return await res.json();
     } catch (err) {
+      // Network/connectivity failure: the backend itself is unreachable.
       this.backendAvailable = false;
       this.lastBackendFailure = Date.now();
       throw err;
     }
+    this.backendAvailable = true;
+    this.lastBackendFailure = 0;
+    if (!res.ok) {
+      // A real HTTP response from a live backend (e.g. 401 invalid credentials,
+      // 409 conflict) is a business-logic error, not a connectivity failure —
+      // it must propagate as-is and must NOT trip the offline fallback.
+      let message = `HTTP ${res.status}`;
+      try {
+        const body = await res.json();
+        if (body?.message) message = Array.isArray(body.message) ? body.message.join(', ') : body.message;
+      } catch { /* no JSON body */ }
+      throw new Error(message);
+    }
+    return await res.json();
   }
 
   private async fallback<T>(promise: Promise<T>, fallbackVal: T | (() => T)): Promise<T> {
@@ -69,103 +126,84 @@ class ApiService {
   public async login(emailOrPayload: string | { email: string; password?: string }, passwordParam?: string): Promise<AuthResponse> {
     const email = typeof emailOrPayload === 'object' ? emailOrPayload.email : emailOrPayload;
     const password = typeof emailOrPayload === 'object' ? emailOrPayload.password : passwordParam;
-    return this.fallback(
-      this.request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) })
-        .then(res => {
-          if (res.accessToken) this.setToken(res.accessToken);
-          if (res.user) this.saveLocalUser(res.user);
-          return res;
-        }),
-      () => {
-        const found = MOCK_USERS.find(u => u.email.toLowerCase() === email.toLowerCase()) || CURRENT_DEMO_USER;
-        const fakeToken = `mock_jwt_token_${Date.now()}`;
-        this.setToken(fakeToken);
-        this.saveLocalUser(found);
-        return { accessToken: fakeToken, user: found };
-      }
-    );
+    // Authentication must always hit the real backend and validate against the
+    // database. No mock fallback here — falling back on a rejected login would
+    // let any input in (and previously defaulted to the mock "Administrator" user).
+    const res = await this.request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
+    if (res.accessToken) this.setToken(res.accessToken);
+    if (res.user) this.saveLocalUser(res.user);
+    return res;
   }
 
   public async register(usernameOrPayload: string | { username: string; email: string; password?: string }, emailParam?: string, passwordParam?: string): Promise<AuthResponse> {
     const username = typeof usernameOrPayload === 'object' ? usernameOrPayload.username : usernameOrPayload;
     const email = typeof usernameOrPayload === 'object' ? usernameOrPayload.email : (emailParam || '');
     const password = typeof usernameOrPayload === 'object' ? usernameOrPayload.password : passwordParam;
-    return this.fallback(
-      this.request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password }) })
-        .then(res => {
-          if (res.accessToken) this.setToken(res.accessToken);
-          if (res.user) this.saveLocalUser(res.user);
-          return res;
-        }),
-      () => {
-        const newUser: User = {
-          id: `user-${Date.now()}`,
-          username, email,
-          avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
-          bio: 'New challenger on ft_transcendence !',
-          status: 'ONLINE', level: 1, xp: 0, wins: 0, losses: 0,
-          twoFactorEnabled: false, createdAt: new Date().toISOString(),
-        };
-        const fakeToken = `mock_jwt_token_${Date.now()}`;
-        this.setToken(fakeToken);
-        this.saveLocalUser(newUser);
-        return { accessToken: fakeToken, user: newUser };
-      }
-    );
+    // Same as login: must hit the real backend so the account actually lands
+    // in the database, instead of silently creating a fake local-only user.
+    const res = await this.request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password }) });
+    if (res.accessToken) this.setToken(res.accessToken);
+    if (res.user) this.saveLocalUser(res.user);
+    return res;
   }
 
-  public getMe = () => this.fallback(this.request<User>('/users/me'), () => this.getLocalUser() || CURRENT_DEMO_USER);
+  // No mock fallback: an invalid/expired token must not silently resolve to
+  // a cached or demo user. AuthContext already handles the rejection itself.
+  public getMe = () => this.request<User>('/users/me');
 
-  public updateProfile = (payload: Partial<User>) => this.fallback(
-    this.request<User>('/users/me', { method: 'PATCH', body: JSON.stringify(payload) }),
-    () => {
-      const updated = { ...(this.getLocalUser() || CURRENT_DEMO_USER), ...payload, updatedAt: new Date().toISOString() };
-      this.saveLocalUser(updated);
-      return updated;
-    }
-  );
+  // Real GDPR export straight from the backend (profile, posts, comments,
+  // likes, friendships, game history, notifications, messages sent) — no
+  // mock fallback, a partial/fake export would defeat the point of it.
+  public exportGdprData = () => this.request<Record<string, unknown>>('/gdpr/export');
+
+  // No mock fallback: a profile edit that only "succeeds" in localStorage would
+  // mislead the user into thinking it was saved when it wasn't (silent data loss).
+  public updateProfile = async (payload: Partial<User>): Promise<User> => {
+    const updated = await this.request<User>('/users/me', { method: 'PATCH', body: JSON.stringify(payload) });
+    this.saveLocalUser(updated);
+    return updated;
+  };
 
   public updateUser = async (id: string, payload: Partial<User>) => {
     try {
-      return await this.request<User>(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      const updated = await this.request<User>(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(payload) });
+      this.saveLocalUser(updated);
+      return updated;
     } catch {
       return this.updateProfile(payload);
     }
   };
 
-  public deleteUser = (id: string) => this.fallback(
-    this.request<void>(`/users/${id}`, { method: 'DELETE' }),
-    () => { localStorage.removeItem('active_user'); this.setToken(null); }
-  );
+  public async uploadAvatar(file: File): Promise<User> {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    const token = this.getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  public generate2FA = () => this.fallback(
-    this.request<{ secret: string; otpAuthUrl: string; qrCodeUrl: string }>('/auth/2fa/generate', { method: 'POST' }),
-    {
-      secret: 'JBSWY3DPEHPK3PXP',
-      otpAuthUrl: 'otpauth://totp/ft_transcendence:demo?secret=JBSWY3DPEHPK3PXP',
-      qrCodeUrl: 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=otpauth://totp/ft_transcendence:demo',
+    const res = await fetch(`${API_BASE_URL}/users/me/avatar`, { method: 'POST', headers, body: formData });
+    if (!res.ok) {
+      let message = `HTTP ${res.status}`;
+      try {
+        const body = await res.json();
+        if (body?.message) message = Array.isArray(body.message) ? body.message.join(', ') : body.message;
+      } catch { /* no JSON body */ }
+      throw new Error(message);
     }
-  );
+    const user = await res.json();
+    this.saveLocalUser(user);
+    return user;
+  }
 
-  public turnOn2FA = (code: string) => this.fallback(
-    this.request<{ success: boolean; message: string }>('/auth/2fa/turn-on', { method: 'POST', body: JSON.stringify({ code }) }),
-    () => {
-      const me = this.getLocalUser() || CURRENT_DEMO_USER;
-      me.twoFactorEnabled = true;
-      this.saveLocalUser(me);
-      return { success: true, message: '2FA activée.' };
-    }
-  );
+  public deleteUser = (id: string) => this.request<void>(`/users/${id}`, { method: 'DELETE' });
 
-  public turnOff2FA = (code: string) => this.fallback(
-    this.request<{ success: boolean; message: string }>('/auth/2fa/turn-off', { method: 'POST', body: JSON.stringify({ code }) }),
-    () => {
-      const me = this.getLocalUser() || CURRENT_DEMO_USER;
-      me.twoFactorEnabled = false;
-      this.saveLocalUser(me);
-      return { success: true, message: '2FA désactivée.' };
-    }
-  );
+  // No mock fallback: a password change that only "succeeds" locally would be
+  // actively dangerous (user believes their credentials rotated when they didn't).
+  public changePassword = (currentPassword: string, newPassword: string) =>
+    this.request<{ success: boolean }>('/users/me/password', {
+      method: 'PATCH',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    });
 
   public getPosts = () => this.fallback(this.request<Post[]>('/posts'), MOCK_POSTS);
 
@@ -251,37 +289,85 @@ class ApiService {
   }
 
   public getMatchHistory = () => this.fallback(
-    this.request<any[]>('/matches/history').then(raw => {
-      if (!Array.isArray(raw)) return [];
-      return raw.map(m => ({
-        id: m.id, gameType: 'PONG' as const, opponentName: m.opponentName || 'Adversaire',
-        userScore: m.player1Score || 0, opponent: m.opponentName || 'Adversaire',
-        myScore: m.player1Score || 0, opponentScore: m.player2Score || 0,
-        result: (m.result || 'VICTORY') as 'VICTORY' | 'DEFEAT',
-        gameMode: m.matchSize || '1v1',
-        date: m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'Aujourd\'hui',
-        duration: m.durationSeconds ? `${Math.floor(m.durationSeconds / 60)}:${(m.durationSeconds % 60).toString().padStart(2, '0')}` : '02:00',
-        xpEarned: m.result === 'VICTORY' ? 150 : 50,
-      }));
-    }),
-    []
+    this.request<any[]>('/matches/history').then(mapMatchHistoryList),
+    [] as GameMatchHistory[]
+  );
+
+  // Same shape, for viewing another player's public match history (e.g. from
+  // their profile card).
+  public getMatchHistoryFor = (userId: string) => this.fallback(
+    this.request<any[]>(`/matches/history/${userId}`).then(mapMatchHistoryList),
+    [] as GameMatchHistory[]
   );
 
   public getMatchHistorySync = (): GameMatchHistory[] => [];
-  public getCosmeticsInventory = () => this.fallback(this.request<any[]>('/cosmetics/inventory'), []);
-  public getCosmeticsWallet = () => this.fallback(this.request<any>('/cosmetics/wallet'), { credits: 3850, stardust: 180, pityCounter: 18 });
-  public equipCosmeticItem = (dto: any) => this.fallback(this.request<any[]>('/cosmetics/equip', { method: 'POST', body: JSON.stringify(dto) }), []);
-  public fuseCosmeticItem = (dto: any) => this.request<any>('/cosmetics/fuse', { method: 'POST', body: JSON.stringify(dto) });
-  public autoFuseCosmetics = (dto: any) => this.request<any>('/cosmetics/auto-fuse', { method: 'POST', body: JSON.stringify(dto) });
-  public gachaPull = (dto: any) => this.request<any>('/cosmetics/gacha/pull', { method: 'POST', body: JSON.stringify(dto) });
-  public buyCosmeticItem = (dto: any) => this.request<any>('/cosmetics/shop/buy', { method: 'POST', body: JSON.stringify(dto) });
-  public unlockChampion = (championRole: string) => this.request<any>('/cosmetics/champions/unlock', { method: 'POST', body: JSON.stringify({ championRole }) });
   public togglePostLike = (postId: string) => this.fallback(this.request<any>(`/posts/${postId}/like`, { method: 'POST' }), { success: true });
   public getNotifications = () => this.fallback(this.request<any[]>('/notifications'), []);
   public markNotificationAsRead = (id: string) => this.fallback(this.request<any>(`/notifications/${id}/read`, { method: 'PATCH' }), { success: true });
   public markAllNotificationsAsRead = () => this.fallback(this.request<any>('/notifications/read-all', { method: 'POST' }), { success: true });
   public deleteNotification = (id: string) => this.fallback(this.request<any>(`/notifications/${id}`, { method: 'DELETE' }), { success: true });
   public searchAll = (query: string) => this.fallback(this.request<any>(`/search?q=${encodeURIComponent(query)}`), { users: [], games: [], posts: [] });
+
+  // Public API key management (self-service). The raw key is only ever
+  // returned once, right here, at creation time.
+  public listApiKeys = () => this.fallback(this.request<any[]>('/api-keys'), [] as any[]);
+  public createApiKey = (label: string) =>
+    this.request<{ id: string; key: string; label: string }>('/api-keys', { method: 'POST', body: JSON.stringify({ label }) });
+  public revokeApiKey = (id: string) => this.request<{ success: boolean }>(`/api-keys/${id}`, { method: 'DELETE' });
+
+  public createTicTacToeGame = (opponentId: string) =>
+    this.request<{ gameId: string }>('/games', { method: 'POST', body: JSON.stringify({ opponentId }) });
+  public joinTicTacToeGame = (gameId: string) =>
+    this.request<TicTacToeState>(`/games/${gameId}/join`, { method: 'POST' });
+  public getTicTacToeGame = (gameId: string) =>
+    this.request<TicTacToeState>(`/games/${gameId}`);
+
+  public getTournaments = () => this.fallback(
+    this.request<any[]>('/tournaments').then((raw) => raw.map(mapTournament)),
+    [] as Tournament[],
+  );
+
+  public getTournament = (id: string) => this.request<any>(`/tournaments/${id}`).then(mapTournament);
+
+  public createTournament = (name: string, size: 4 | 8) =>
+    this.request<any>('/tournaments', { method: 'POST', body: JSON.stringify({ name, size }) }).then(mapTournament);
+
+  public registerForTournament = (id: string) =>
+    this.request<any>(`/tournaments/${id}/register`, { method: 'POST' }).then(mapTournament);
+
+  public unregisterFromTournament = (id: string) =>
+    this.request<{ success: boolean }>(`/tournaments/${id}/register`, { method: 'DELETE' });
+
+  public reportTournamentMatchResult = (tournamentId: string, matchId: string, winnerId: string, score1: number, score2: number) =>
+    this.request<any>(`/tournaments/${tournamentId}/matches/${matchId}/report`, {
+      method: 'POST',
+      body: JSON.stringify({ winnerId, score1, score2 }),
+    }).then(mapTournament);
+
+  // A degraded/down backend answers with a non-2xx status on purpose (so
+  // infra monitoring notices) — but that body is still exactly what this
+  // status page wants to show, so read it regardless of res.ok.
+  public async getHealth(): Promise<{
+    status: string;
+    timestamp: string;
+    uptimeSeconds: number;
+    database: { status: string; latencyMs?: number; error?: string };
+  }> {
+    const res = await fetch(`${API_BASE_URL}/health`);
+    return res.json();
+  }
+
+  // Whether "Se connecter avec 42" can actually work (FORTYTWO_CLIENT_ID/SECRET
+  // configured server-side) — lets the UI disable the button instead of
+  // bouncing the user through a redirect that 503s.
+  public async getFortyTwoStatus(): Promise<{ configured: boolean }> {
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/42/status`);
+      return await res.json();
+    } catch {
+      return { configured: false };
+    }
+  }
 
   public getLocalUser(): User | null {
     const raw = localStorage.getItem('active_user');

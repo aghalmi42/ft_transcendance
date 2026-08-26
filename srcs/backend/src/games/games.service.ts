@@ -10,6 +10,9 @@ import { Repository } from 'typeorm';
 import { TicTacToe } from './tictactoe';
 import { GameResult } from './entities/game-result.entity';
 import { GameResultType } from './enums/game-result.enum';
+import { UsersService } from '../users/users.service';
+
+const ELO_K_FACTOR = 32;
 
 @Injectable()
 export class GamesService {
@@ -18,6 +21,7 @@ export class GamesService {
   constructor(
     @InjectRepository(GameResult)
     private readonly gameResultsRepository: Repository<GameResult>,
+    private readonly usersService: UsersService,
   ) {}
 
   
@@ -102,30 +106,54 @@ export class GamesService {
     return gameState;
   }
 
-  
-   //Sauvegarde le résultat d'une partie terminée.
-   
+
+   //Sauvegarde le résultat d'une partie terminée et met à jour les stats des joueurs.
+
   private async saveGameResult(
     game: TicTacToe,
   ): Promise<void> {
     const winner = game.getWinner();
+    const playerXId = game.getPlayerXId();
+    const playerOId = game.getPlayerOId();
+    const winnerId = winner === null ? null : winner === 'X' ? playerXId : playerOId;
 
     const result = this.gameResultsRepository.create({
-      playerXId: game.getPlayerXId(),
-      playerOId: game.getPlayerOId(),
-      winnerId:
-        winner === null
-          ? null
-          : winner === 'X'
-            ? game.getPlayerXId()
-            : game.getPlayerOId(),
-      result:
-        winner === null
-          ? GameResultType.DRAW
-          : GameResultType.WIN,
+      playerXId,
+      playerOId,
+      winnerId,
+      result: winner === null ? GameResultType.DRAW : GameResultType.WIN,
     });
 
     await this.gameResultsRepository.save(result);
+    await this.applyEloAndStats(playerXId, playerOId, winnerId);
+  }
+
+  private async applyEloAndStats(
+    playerXId: string,
+    playerOId: string,
+    winnerId: string | null,
+  ): Promise<void> {
+    const [playerX, playerO] = await Promise.all([
+      this.usersService.findOneById(playerXId),
+      this.usersService.findOneById(playerOId),
+    ]);
+    if (!playerX || !playerO) return;
+
+    const expectedX = 1 / (1 + 10 ** ((playerO.eloRating - playerX.eloRating) / 400));
+    const expectedO = 1 - expectedX;
+    const scoreX = winnerId === null ? 0.5 : winnerId === playerXId ? 1 : 0;
+    const scoreO = winnerId === null ? 0.5 : winnerId === playerOId ? 1 : 0;
+
+    const newEloX = Math.round(playerX.eloRating + ELO_K_FACTOR * (scoreX - expectedX));
+    const newEloO = Math.round(playerO.eloRating + ELO_K_FACTOR * (scoreO - expectedO));
+
+    const outcomeX = winnerId === null ? 'DRAW' : winnerId === playerXId ? 'WIN' : 'LOSS';
+    const outcomeO = winnerId === null ? 'DRAW' : winnerId === playerOId ? 'WIN' : 'LOSS';
+
+    await Promise.all([
+      this.usersService.recordMatchResult(playerXId, outcomeX, newEloX),
+      this.usersService.recordMatchResult(playerOId, outcomeO, newEloO),
+    ]);
   }
 
   

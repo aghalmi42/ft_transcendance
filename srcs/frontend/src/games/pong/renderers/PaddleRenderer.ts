@@ -1,5 +1,4 @@
 import type { HeroRole } from '../types';
-import { cosmeticsStore, type StoredInventoryItem } from '../../../services/cosmeticsStore';
 
 export interface PaddleVisualLoadout {
   role: HeroRole;
@@ -27,37 +26,23 @@ export const DEFAULT_ROLE_COLORS: Record<HeroRole, { primary: string; secondary:
   TANK: { primary: '#f59e0b', secondary: '#fbbf24', glow: '#d97706' },
 };
 
-export function getHeroEquippedLoadout(role: HeroRole, customInv?: StoredInventoryItem[]): PaddleVisualLoadout {
-  const items = customInv || cosmeticsStore.getInventory();
-  const roleItems = items.filter(it => it.characterRole === role);
-
-  const skin = roleItems.find(it => it.kind === 'SKIN' && it.isEquipped);
-  const weapon = roleItems.find(it => it.kind === 'WEAPON' && it.isEquipped);
-  const glow = roleItems.find(it => it.kind === 'GLOW' && it.isEquipped);
-  const aura = roleItems.find(it => it.kind === 'AURA' && it.isEquipped);
-  const trail = roleItems.find(it => it.kind === 'TRAIL' && it.isEquipped);
-
+export function getHeroEquippedLoadout(role: HeroRole): PaddleVisualLoadout {
   const def = DEFAULT_ROLE_COLORS[role] || DEFAULT_ROLE_COLORS.SHOOTER;
   const defaultWeaponPrimary = role === 'SLAYER' ? '#dc2626' : role === 'TANK' ? '#f97316' : def.primary;
   const defaultWeaponSecondary = role === 'SLAYER' ? '#991b1b' : role === 'TANK' ? '#ef4444' : def.secondary;
 
   return {
     role,
-    skinPrimary: skin?.primaryColor || def.primary,
-    skinSecondary: skin?.secondaryColor || skin?.primaryColor || def.secondary,
-    skinRarity: skin?.rarity,
-    skinStars: skin?.stars,
-    glowColor: glow?.glowColor || def.glow,
-    auraColor: aura?.glowColor,
-    trailColor: trail?.glowColor || def.glow,
-    weaponPrimary: weapon?.primaryColor || defaultWeaponPrimary,
-    weaponSecondary: weapon?.secondaryColor || weapon?.primaryColor || defaultWeaponSecondary,
-    weaponGlow: weapon?.glowColor || def.glow,
-    weaponRarity: weapon?.rarity,
-    weaponStars: weapon?.stars,
-    glowScale: glow ? (glow.level || 1) * 0.2 : 0.85,
-    auraScale: aura ? (aura.level || 1) * 0.2 : 0,
-    trailScale: trail ? (trail.level || 1) * 0.2 : 0.8,
+    skinPrimary: def.primary,
+    skinSecondary: def.secondary,
+    glowColor: def.glow,
+    trailColor: def.glow,
+    weaponPrimary: defaultWeaponPrimary,
+    weaponSecondary: defaultWeaponSecondary,
+    weaponGlow: def.glow,
+    glowScale: 0.85,
+    auraScale: 0,
+    trailScale: 0.8,
   };
 }
 

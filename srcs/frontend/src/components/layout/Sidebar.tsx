@@ -1,5 +1,6 @@
 import React from 'react';
 import { useChat } from '../../context/ChatContext';
+import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
   currentTab: string;
@@ -27,14 +28,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isDesktopColumn,
 }) => {
   const { messages } = useChat();
+  const { user } = useAuth();
 
   const navGroups: NavGroup[] = [
     {
       category: 'JEUX & ARÈNES',
       items: [
         { id: 'games', label: 'Catalogue de jeux', icon: '🏓' },
-        { id: 'inventory', label: 'Atelier & Casier', icon: '✨' },
-        { id: 'shop', label: 'Boutique & Coffres', icon: '🛒' },
         { id: 'tournaments', label: 'Tournois', icon: '🏆' },
       ],
     },
@@ -57,10 +57,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'settings', label: 'Sécurité 2FA & Compte', icon: '⚙️' },
       ],
     },
+    ...(user?.role === 'admin'
+      ? [
+          {
+            category: 'ADMINISTRATION',
+            items: [{ id: 'admin', label: 'Gestion des utilisateurs', icon: '🛡️' }],
+          },
+        ]
+      : []),
   ];
 
   const footerItems = [
     { id: 'gdpr', label: 'RGPD & Données', icon: '🛡️' },
+    { id: 'status', label: 'État du service', icon: '📡' },
     { id: 'about', label: 'À propos', icon: 'ℹ️' },
   ];
 

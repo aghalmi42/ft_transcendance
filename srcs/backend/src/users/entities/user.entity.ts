@@ -1,5 +1,6 @@
 
 import { UserStatus } from '../../common/enums/user-status.enum';
+import { UserRole } from '../../common/enums/user-role.enum';
 import {Friendship} from '../../friends/entities/friends.entity'
 import { Post } from '../../posts/entities/post.entity';
 import { Comment } from '../../comments/entities/comment.entity';
@@ -17,9 +18,11 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   OneToMany,
+  Unique,
 } from 'typeorm';
 
 @Entity('users')
+@Unique(['oauthProvider', 'oauthId'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -32,8 +35,8 @@ export class User {
   email!: string;
 
   @Exclude()
-  @Column()
-  passwordHash!: string;
+  @Column({ type: 'varchar', nullable: true })
+  passwordHash!: string | null;
 
   @Column({ nullable: true })
   avatar!: string;
@@ -48,6 +51,37 @@ export class User {
   default: UserStatus.OFFLINE,
   })
   status!: UserStatus;
+
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  role!: UserRole;
+
+  @Column({ type: 'int', default: 0 })
+  wins!: number;
+
+  @Column({ type: 'int', default: 0 })
+  losses!: number;
+
+  @Column({ type: 'int', default: 0 })
+  draws!: number;
+
+  @Column({ type: 'int', default: 1 })
+  level!: number;
+
+  @Column({ type: 'int', default: 0 })
+  xp!: number;
+
+  @Column({ type: 'int', default: 1000 })
+  eloRating!: number;
+
+  @Column({ type: 'varchar', nullable: true })
+  oauthProvider!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  oauthId!: string | null;
 
 
   @OneToMany(() => Friendship, (friendship) => friendship.sender)

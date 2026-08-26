@@ -19,8 +19,6 @@ interface ChatContextType {
   blockedUserIds: string[];
   toggleBlockUser: (userId: string) => void;
   isUserBlocked: (userId: string) => boolean;
-  channelMessages?: any[];
-  sendChannelMessage?: (channelId: string, content: string) => void;
   sendGameChallenge: (receiverId: string, gameType: 'PONG' | 'TICTACTOE' | 'QUIZ' | 'SNAKE' | string, options?: any) => void;
   activeInvite: ActiveDuelInvite | null;
   clearActiveInvite: () => void;

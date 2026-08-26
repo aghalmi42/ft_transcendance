@@ -140,6 +140,7 @@ class SimpleSocketIOSocket {
 class SocketManager {
   private chatSocket: SimpleSocketIOSocket | null = null;
   private gameSocket: SimpleSocketIOSocket | null = null;
+  private ticTacToeSocket: SimpleSocketIOSocket | null = null;
   private listeners: Map<string, Set<SocketMessageCallback>> = new Map();
   private baseUrl: string = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -185,12 +186,31 @@ class SocketManager {
     });
   }
 
+  // The backend's TicTacToe gateway lives on its own '/games' namespace and
+  // only emits 'game:state' — it is unrelated to the Pong '/game' duel socket
+  // above, so it gets its own connection instead of being merged into connectGame().
+  public connectTicTacToe(token: string) {
+    if (this.ticTacToeSocket) return;
+
+    this.ticTacToeSocket = new SimpleSocketIOSocket(this.baseUrl, '/games', token);
+
+    ['game:state', 'game:opponentDisconnected'].forEach((ev) => {
+      this.ticTacToeSocket?.on(ev, (data) => {
+        this.trigger(ev, data);
+      });
+    });
+  }
+
   public sendChat(event: string, data: any) {
     this.chatSocket?.emit(event, data);
   }
 
   public sendGame(event: string, data: any) {
     this.gameSocket?.emit(event, data);
+  }
+
+  public sendTicTacToe(event: string, data: any) {
+    this.ticTacToeSocket?.emit(event, data);
   }
 
   public on(event: string, callback: SocketMessageCallback) {
@@ -228,6 +248,10 @@ class SocketManager {
     if (this.gameSocket) {
       this.gameSocket.disconnect();
       this.gameSocket = null;
+    }
+    if (this.ticTacToeSocket) {
+      this.ticTacToeSocket.disconnect();
+      this.ticTacToeSocket = null;
     }
     this.listeners.clear();
   }

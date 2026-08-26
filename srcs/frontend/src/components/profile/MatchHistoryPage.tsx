@@ -2,31 +2,42 @@ import React, { useState } from 'react';
 import Button from '../common/Button';
 import { Badge } from '../common/Badge';
 import { useAuth } from '../../context/AuthContext';
+import { useGame } from '../../context/GameContext';
 import { audioService } from '../../services/audio';
-import { MOCK_PROFILE_MATCH_RECORDS, type MockMatchRecord as MatchRecord } from '../../services/mockData';
-
-export type { MatchRecord };
 
 interface MatchHistoryPageProps {
   onNavigate?: (tabId: string) => void;
 }
 
+// Real ELO derived rank label — same thresholds as PublicUserProfileModal's
+// getRankBadge, kept in sync so a player sees the same league everywhere.
+const getRankLabel = (rating: number): string => {
+  if (rating >= 2000) return 'Grand Maître Cyber';
+  if (rating >= 1700) return 'Maître Diamant';
+  if (rating >= 1400) return 'Champion Platine';
+  if (rating >= 1200) return 'Vétéran Or';
+  return 'Recrue Argent';
+};
+
+const GAME_ICONS: Record<string, string> = {
+  PONG: '🏓', TICTACTOE: '⭕', SNAKE: '🐍', QUIZ: '🧠',
+};
+
 export const MatchHistoryPage: React.FC<MatchHistoryPageProps> = ({ onNavigate }) => {
   const { user } = useAuth();
+  const { history } = useGame();
   const [filterGame, setFilterGame] = useState<string>('all');
   const [filterResult, setFilterResult] = useState<string>('all');
 
-  const [matches] = useState<MatchRecord[]>(MOCK_PROFILE_MATCH_RECORDS);
-
-  const totalMatches = matches.length;
-  const victories = matches.filter((m) => m.result === 'VICTORY').length;
-  const defeats = matches.filter((m) => m.result === 'DEFEAT').length;
+  const totalMatches = history.length;
+  const victories = history.filter((m) => m.result === 'VICTORY').length;
+  const defeats = history.filter((m) => m.result === 'DEFEAT').length;
   const winrate = totalMatches > 0 ? Math.round((victories / totalMatches) * 100) : 0;
-  const currentElo = 2450;
-  const leagueTitle = 'Diamant II';
+  const currentElo = user?.eloRating || 1000;
+  const leagueTitle = getRankLabel(currentElo);
 
-  const filteredMatches = matches.filter((m) => {
-    const matchGame = filterGame === 'all' || m.gameId === filterGame;
+  const filteredMatches = history.filter((m) => {
+    const matchGame = filterGame === 'all' || (m.gameType || '').toLowerCase() === filterGame;
     const matchRes = filterResult === 'all' || m.result === filterResult;
     return matchGame && matchRes;
   });
@@ -98,11 +109,8 @@ export const MatchHistoryPage: React.FC<MatchHistoryPageProps> = ({ onNavigate }
         <div className="flex items-center space-x-2 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
           {[
             { id: 'all', label: 'Tous les Jeux' },
-            { id: 'pong', label: '🏓 Pong 2D' },
-            { id: 'tron', label: '🏍️ Tron' },
-            { id: 'snake', label: '🐍 Snake' },
-            { id: 'brickbattle', label: '🧱 Casse-Briques' },
-            { id: 'spaceinvaders', label: '🚀 Space Invaders' },
+            { id: 'pong', label: '🏓 Pong' },
+            { id: 'tictactoe', label: '⭕ Morpion' },
           ].map((f) => (
             <button
               key={f.id}
@@ -183,7 +191,7 @@ export const MatchHistoryPage: React.FC<MatchHistoryPageProps> = ({ onNavigate }
                         : 'bg-rose-900/40 border border-rose-500/40 text-rose-300'
                     }`}
                   >
-                    {m.gameIcon}
+                    {GAME_ICONS[(m.gameType || '').toUpperCase()] || '🎮'}
                   </div>
 
                   <div>
@@ -197,13 +205,12 @@ export const MatchHistoryPage: React.FC<MatchHistoryPageProps> = ({ onNavigate }
                       >
                         {isWin ? 'VICTOIRE' : 'DÉFAITE'}
                       </span>
-                      <span className="text-xs font-bold text-white">{m.gameTitle}</span>
+                      <span className="text-xs font-bold text-white">{m.gameType || 'Partie'}</span>
                     </div>
 
                     <div className="flex items-center space-x-2 text-[11px] text-slate-400 font-mono mt-1">
-                      <span>{m.mode}</span>
-                      <span>&bull;</span>
-                      <span>⏱️ {m.duration}</span>
+                      <span>{m.gameMode}</span>
+                      {m.duration && (<><span>&bull;</span><span>⏱️ {m.duration}</span></>)}
                       <span>&bull;</span>
                       <span>{m.date}</span>
                     </div>
@@ -230,10 +237,9 @@ export const MatchHistoryPage: React.FC<MatchHistoryPageProps> = ({ onNavigate }
                   {}
                   {m.opponentName && (
                     <div className="flex items-center space-x-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl">
-                      <span className="text-sm">{m.opponentAvatar || '👤'}</span>
+                      <span className="text-sm">👤</span>
                       <div className="flex flex-col text-left">
                         <span className="text-xs font-bold text-slate-200">@{m.opponentName}</span>
-                        <span className="text-[9px] font-mono text-slate-500">Niv. {m.opponentLevel || 1}</span>
                       </div>
                     </div>
                   )}
@@ -242,14 +248,7 @@ export const MatchHistoryPage: React.FC<MatchHistoryPageProps> = ({ onNavigate }
                 {}
                 <div className="flex items-center space-x-4 w-full md:w-auto justify-between md:justify-end">
                   <div className="flex flex-col items-end font-mono">
-                    <span
-                      className={`text-xs font-black ${
-                        m.lpChange > 0 ? 'text-emerald-400' : m.lpChange < 0 ? 'text-rose-400' : 'text-slate-400'
-                      }`}
-                    >
-                      {m.lpChange > 0 ? `+${m.lpChange} LP` : m.lpChange < 0 ? `${m.lpChange} LP` : '0 LP'}
-                    </span>
-                    <span className="text-[10px] text-violet-400 font-semibold">+{m.xpEarned} XP</span>
+                    <span className="text-[10px] text-violet-400 font-semibold">+{m.xpEarned || 0} XP</span>
                   </div>
 
                   {onNavigate && (

@@ -1,6 +1,5 @@
 import type { EngineState } from './ShooTacToeEngine';
 import { CANVAS_WIDTH, CANVAS_HEIGHT } from '../configs';
-import { cosmeticsStore } from '../../../services/cosmeticsStore';
 import type { HeroRole } from '../../pong/types';
 
 export class ShooTacToeRenderer {
@@ -148,45 +147,13 @@ export class ShooTacToeRenderer {
       }
 
       const role: HeroRole = ship.role || 'SHOOTER';
-      const isPlayer = ship.id === 'blue_0';
 
-      let hullColor = ship.color;
-      let glowColor = ship.accentColor;
-      let secondaryColor = '#ffffff';
-      let hasCustomAura = false;
-      let customAuraColor = glowColor;
-
-      if (isPlayer) {
-        const inventory = cosmeticsStore.getInventory();
-        const equippedSkin = inventory.find(it => it.characterRole === role && it.kind === 'SKIN' && it.isEquipped);
-        const equippedAura = inventory.find(it => it.characterRole === role && it.kind === 'AURA' && it.isEquipped);
-
-        if (equippedSkin) {
-          if (equippedSkin.primaryColor) hullColor = equippedSkin.primaryColor;
-          if (equippedSkin.glowColor) glowColor = equippedSkin.glowColor;
-          if (equippedSkin.secondaryColor) secondaryColor = equippedSkin.secondaryColor;
-        }
-
-        if (equippedAura) {
-          hasCustomAura = true;
-          if (equippedAura.glowColor) customAuraColor = equippedAura.glowColor;
-        }
-      }
+      const hullColor = ship.color;
+      const glowColor = ship.accentColor;
+      const secondaryColor = '#ffffff';
 
       ctx.save();
       ctx.translate(ship.x, ship.y);
-
-      if (hasCustomAura) {
-        ctx.save();
-        ctx.strokeStyle = customAuraColor;
-        ctx.lineWidth = 1.5;
-        ctx.shadowColor = customAuraColor;
-        ctx.shadowBlur = 15;
-        ctx.beginPath();
-        ctx.arc(0, 0, ship.radius + 10, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-      }
 
       ctx.rotate(ship.angle);
       ctx.shadowColor = glowColor;

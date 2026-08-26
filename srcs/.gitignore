@@ -1,0 +1,2 @@
+# database backup dumps (see scripts/backup-loop.sh)
+backups/*.sql.gz

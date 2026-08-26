@@ -11,23 +11,22 @@ import { socketService } from '../../services/socket';
 import type { User, Friendship } from '../../types';
 import { InviteFriendsModal } from '../friends/InviteFriendsModal';
 import { PlatoChallengeModal, type ChallengeGameType } from './PlatoChallengeModal';
-import { MOCK_PUBLIC_ROOMS as PUBLIC_ROOMS } from '../../services/mockData';
 
 export const ChatView: React.FC<{ onNavigate: (tabId: string) => void }> = ({ onNavigate }) => {
   const { user } = useAuth();
   const {
-    messages, channelMessages, activeFriendId, setActiveFriendId,
-    sendMessage, sendChannelMessage, sendGameChallenge, toggleBlockUser, isUserBlocked,
+    messages, activeFriendId, setActiveFriendId,
+    sendMessage, sendGameChallenge, toggleBlockUser, isUserBlocked,
   } = useChat();
   const { addToast } = useNotification();
 
   const [realUsers, setRealUsers] = useState<User[]>([]);
   const [, setFriendships] = useState<Friendship[]>([]);
-  const [selectedTarget, setSelectedTarget] = useState<string>('room_general');
+  const [selectedTarget, setSelectedTarget] = useState<string>('');
   const [mobileView, setMobileView] = useState<'LIST' | 'CHAT'>('CHAT');
   const [inputText, setInputText] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [filterTab, setFilterTab] = useState<'all' | 'online' | 'rooms'>('all');
+  const [filterTab, setFilterTab] = useState<'all' | 'online'>('all');
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isChallengeModalOpen, setIsChallengeModalOpen] = useState(false);
   const [challengeTargetUser, setChallengeTargetUser] = useState<User | null>(null);
@@ -53,7 +52,7 @@ export const ChatView: React.FC<{ onNavigate: (tabId: string) => void }> = ({ on
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, channelMessages, selectedTarget]);
+  }, [messages, selectedTarget]);
 
   const otherUsers = realUsers.filter(u => u.id !== user?.id);
   const filteredUsers = otherUsers.filter(u => {
@@ -62,10 +61,7 @@ export const ChatView: React.FC<{ onNavigate: (tabId: string) => void }> = ({ on
     return true;
   });
 
-  const isRoom = selectedTarget.startsWith('room_');
-  const activeRoomId = isRoom ? selectedTarget.replace('room_', '') : null;
-  const activeRoom = PUBLIC_ROOMS.find(r => r.id === activeRoomId);
-  const activeUser = !isRoom ? realUsers.find(u => u.id === selectedTarget) : null;
+  const activeUser = realUsers.find(u => u.id === selectedTarget) || null;
   const isSelectedBlocked = activeUser ? isUserBlocked(activeUser.id) : false;
 
   const handleSelectContact = (userId: string) => {
@@ -75,28 +71,16 @@ export const ChatView: React.FC<{ onNavigate: (tabId: string) => void }> = ({ on
     soundEffects.playClick();
   };
 
-  const handleSelectRoom = (roomId: string) => {
-    setSelectedTarget(`room_${roomId}`);
-    setActiveFriendId(null);
-    setMobileView('CHAT');
-    soundEffects.playClick();
-  };
-
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || !activeUser) return;
 
-    if (isRoom && activeRoomId) {
-      sendChannelMessage(activeRoomId, inputText.trim());
-      soundEffects.playClick();
-    } else if (activeUser) {
-      if (isSelectedBlocked) {
-        addToast("Impossible d'envoyer un message à un utilisateur bloqué.", 'error');
-        return;
-      }
-      sendMessage(activeUser.id, inputText.trim());
-      soundEffects.playClick();
+    if (isSelectedBlocked) {
+      addToast("Impossible d'envoyer un message à un utilisateur bloqué.", 'error');
+      return;
     }
+    sendMessage(activeUser.id, inputText.trim());
+    soundEffects.playClick();
     setInputText('');
   };
 
@@ -118,10 +102,6 @@ export const ChatView: React.FC<{ onNavigate: (tabId: string) => void }> = ({ on
 
   const activeDirectMessages = messages.filter(
     m => activeUser && ((m.senderId === user?.id && m.receiverId === activeUser.id) || (m.senderId === activeUser.id && m.receiverId === user?.id))
-  );
-
-  const activeRoomMessages = channelMessages.filter(
-    m => activeRoomId && (m.channelId === activeRoomId || (!m.channelId && activeRoomId === 'general'))
   );
 
   return (
@@ -161,38 +141,18 @@ export const ChatView: React.FC<{ onNavigate: (tabId: string) => void }> = ({ on
               className="w-full bg-slate-900 text-slate-100 placeholder-slate-500 rounded-xl px-3 py-2 text-xs border border-slate-800 focus:outline-none focus:border-violet-500"
             />
             <div className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-xl">
-              {(['all', 'online', 'rooms'] as const).map(tab => (
+              {(['all', 'online'] as const).map(tab => (
                 <button
                   key={tab} onClick={() => setFilterTab(tab)}
                   className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition-colors cursor-pointer ${filterTab === tab ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
                 >
-                  {tab === 'all' ? 'Tous' : tab === 'online' ? 'En Ligne' : 'Salons'}
+                  {tab === 'all' ? 'Tous' : 'En Ligne'}
                 </button>
               ))}
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-2 space-y-3">
-            {(filterTab === 'all' || filterTab === 'rooms') && (
-              <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-2 block mb-1">Salons</span>
-                <div className="space-y-1">
-                  {PUBLIC_ROOMS.map(room => (
-                    <div
-                      key={room.id} onClick={() => handleSelectRoom(room.id)}
-                      className={`p-2.5 rounded-2xl flex items-center gap-2.5 cursor-pointer transition-all ${selectedTarget === `room_${room.id}` ? 'bg-violet-600 text-white font-bold' : 'hover:bg-slate-900 text-slate-300'}`}
-                    >
-                      <span className="text-xl">{room.icon}</span>
-                      <div className="min-w-0 text-left">
-                        <span className="text-xs font-bold truncate block">{room.name}</span>
-                        <span className="text-[10px] truncate block text-slate-400">{room.topic}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {(filterTab === 'all' || filterTab === 'online') && (
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 px-2 block mb-1">Joueurs ({filteredUsers.length})</span>
@@ -225,15 +185,7 @@ export const ChatView: React.FC<{ onNavigate: (tabId: string) => void }> = ({ on
 
         <div className={`flex-1 flex flex-col bg-slate-950/80 overflow-hidden ${mobileView === 'LIST' ? 'hidden md:flex' : 'flex'}`}>
           <div className="px-4 py-3 bg-slate-900/70 border-b border-slate-800 flex items-center justify-between">
-            {isRoom ? (
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{activeRoom?.icon}</span>
-                <div>
-                  <h3 className="text-sm font-bold text-white">{activeRoom?.name}</h3>
-                  <p className="text-xs text-slate-400">{activeRoom?.topic}</p>
-                </div>
-              </div>
-            ) : activeUser ? (
+            {activeUser ? (
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
                   <Avatar username={activeUser.username} src={activeUser.avatar} size="md" status={activeUser.status} />
@@ -259,7 +211,7 @@ export const ChatView: React.FC<{ onNavigate: (tabId: string) => void }> = ({ on
           </div>
 
           <div className="flex-1 p-4 overflow-y-auto space-y-3">
-            {(isRoom ? activeRoomMessages : activeDirectMessages).map((msg, i) => {
+            {activeDirectMessages.map((msg, i) => {
               const isMe = msg.senderId === user?.id;
               return (
                 <div key={msg.id || i} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
