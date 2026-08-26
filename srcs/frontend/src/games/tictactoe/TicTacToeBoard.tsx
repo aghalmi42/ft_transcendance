@@ -1,4 +1,3 @@
-import Button from '../../components/common/Button';
 import type { Cell } from './types'
 
 interface TicTacToeBoardProps {
@@ -9,16 +8,20 @@ interface TicTacToeBoardProps {
 
 export function TicTacToeBoard({ board, onCellClick, disabled }: TicTacToeBoardProps) {
     return (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 80px)', gap: '4px' }}>
+        <div className="grid grid-cols-3 gap-2 w-fit mx-auto">
             {board.map((cell, index) => (
-                <Button
+                <button
                     key={index}
                     onClick={() => onCellClick(index)}
                     disabled={disabled || cell !== null}
-                    style={{ height: '80px', fontSize: '2rem' }}
+                    className={`w-20 h-20 rounded-xl border flex items-center justify-center text-4xl font-black transition-all
+                    ${cell === null && !disabled ? 'bg-slate-900 border-slate-700 hover:border-violet-500 hover:bg-slate-800 cursor-pointer' : 'bg-slate-900/60 border-slate-800 cursor-default'}
+                    ${cell === 'X' ? 'text-cyan-400' : ''}
+                    ${cell === 'O' ? 'text-rose-400' : ''}
+                    `}
                 >
                     {cell}
-                </Button>
+                </button>
             ))}
         </div>
     );

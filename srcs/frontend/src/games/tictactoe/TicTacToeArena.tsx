@@ -48,8 +48,10 @@ export function TicTacToeArena({ initialState }: TicTacToeArenaProps) {
             return "Waiting for your opponent to join"
     }
     return (
-        <div>
-            <p>{getStatusMessage()}</p>
+        <div className="max-w-md mx-auto space-y-6 text-center">
+            <div className="px-4 py-2 rounded-full bg-slate-900 border border-violet-500/40 text-violet-300 font-bold text-sm inline-block">
+                {getStatusMessage()}
+            </div>
             <TicTacToeBoard
                 board={gameState.board}
                 onCellClick={handleCellClick}
