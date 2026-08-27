@@ -31,7 +31,11 @@ export function TicTacToeLobby() {
             setGameState(game)
         }
         catch (err) {
-            console.log(err); // TO DO: affichage d'erreur
+            if (err instanceof Error) {
+                setError(err.message)
+            }
+            else
+                setError("Une erreur inattendue est survenue.")
         }
     }
     async function handleJoin() {
@@ -40,7 +44,11 @@ export function TicTacToeLobby() {
             setGameState(res)
         }
         catch (err) {
-            console.log(err); // TO DO: affichage d'erreur
+            if (err instanceof Error) {
+                setError(err.message)
+            }
+            else
+                setError("Une erreur inattendue est survenue.")
         }
     }
     if (gameState)

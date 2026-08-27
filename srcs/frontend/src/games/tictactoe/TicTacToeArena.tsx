@@ -11,6 +11,7 @@ interface TicTacToeArenaProps {
 export function TicTacToeArena({ initialState }: TicTacToeArenaProps) {
     const [gameState, setGameState] = useState<TicTacToeState>(initialState)
     const { user } = useAuth();
+    const [error, setError] = useState<string | null>(null)
     
     async function handleCellClick(index: number) {
         try {
@@ -18,7 +19,11 @@ export function TicTacToeArena({ initialState }: TicTacToeArenaProps) {
             setGameState(res)
         }
         catch (err) {
-            console.log(err); // TO DO: affichage d'erreur
+            if (err instanceof Error) {
+                setError(err.message)
+            }
+            else
+                setError("Une erreur inattendue est survenue.")
         }
     }
     function isMyTurn() {
@@ -52,6 +57,7 @@ export function TicTacToeArena({ initialState }: TicTacToeArenaProps) {
             <div className="px-4 py-2 rounded-full bg-slate-900 border border-violet-500/40 text-violet-300 font-bold text-sm inline-block">
                 {getStatusMessage()}
             </div>
+            {error && <p className="text-xs text-rose-400">{error}</p>}
             <TicTacToeBoard
                 board={gameState.board}
                 onCellClick={handleCellClick}
