@@ -35,7 +35,7 @@ export function TicTacToeLobby() {
                 setError(err.message)
             }
             else
-                setError("Une erreur inattendue est survenue.")
+                setError("Une erreur inattendue est survenue")
         }
     }
     async function handleJoin() {
@@ -56,6 +56,7 @@ export function TicTacToeLobby() {
     return (
         <div className="max-w-2xl mx-auto space-y-6">
             <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+            {/* <Button onClick={() => handleChallenge("10239a6f-421e-4522-8cb1-6f1a39151598")}>Défier test</Button> */}
             <h3 className="text-sm font-black text-slate-200 uppercase tracking-wider">⚔️ Défier un ami</h3>
             {friendsList.length === 0 ? (
                 <p className="text-xs text-slate-500">Vous n'avez pas encore d'amis à défier.</p>
