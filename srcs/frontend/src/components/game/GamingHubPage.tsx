@@ -2,7 +2,7 @@ import React from 'react';
 import { PongGame } from '../../games/pong/PongGame';
 import { ShooTacToeGame } from '../../games/shootactoe/ShooTacToeGame';
 import { SnakeOutTheFlagGame } from '../../games/snakeouttheflag/SnakeOutTheFlagGame';
-import { TicTacToeGame } from '../../games/tictactoe/TicTacToeGame';
+import { TicTacToeLobby } from '../../games/tictactoe/TicTacToeLobby';
 
 interface GamingHubPageProps {
   onNavigate?: (tabId: string) => void;
@@ -26,7 +26,7 @@ export const GamingHubPage: React.FC<GamingHubPageProps> = ({
       ) : (initialGame === 'hungrygoal' || initialGame === 'hungry-goal' || initialGame === 'reverse-hockey') ? (
         <PongGame initialMatchSize="PACMAN_GOAL" />
       ) : (initialGame === 'tictactoe' || initialGame === 'tic-tac-toe') ? (
-        <TicTacToeGame />
+        <TicTacToeLobby />
       ) : (
         <PongGame
           initialDuelRoomId={initialDuelRoomId}
