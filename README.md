@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by aghalmi, amoderan, smadani, abdali and mhammoud.*
+*This project has been created as part of the 42 curriculum by aghalmi, amoderan, smadani and mhammoud.*
 
 # ft_transcendence
 
@@ -46,12 +46,12 @@ that reaches the backend from a browser goes through an HTTPS reverse proxy.
 |---|---|---|---|
 | Alex Moderan | `amoderan` | **Technical Lead / Architect** · Backend Developer | Overall backend architecture, database schema and relations, technology-stack decisions, authentication foundation, WebSocket layer, tournaments / matches / API-keys / public-API / mailer / GDPR / health modules, code review of critical changes. |
 | Amir Ghalmi | `aghalmi` | **Project Manager / Scrum Master** · Backend Developer | Repository ownership, branching strategy, pull-request review and merge coordination, milestone and deadline tracking. Backend: posts, comments, likes, notifications, private chat, global search. |
-| Sana Madani | `smadani` | **Product Owner** · Frontend Developer | Product vision and feature prioritisation, UX decisions. Frontend: the Tic-Tac-Toe experience (lobby, arena, board, game-sharing flow), plus profile and settings screens and gaming-hub integration. |
-| Abdoulkadir Ali | `abdali` | Developer (Frontend) | The frontend foundation: design system and reusable UI kit, routing and context architecture, authentication screens, social feed / chat / notifications UI, legal pages, and the arcade game front-ends. |
+| Sana Madani | `smadani` | **Product Owner** · **Lead Frontend Developer** | Product vision, feature prioritisation and UX decisions. Owns the entire frontend: design system and reusable UI kit, routing and context architecture, authentication screens, social feed / chat / notifications UI, legal pages, the arcade game front-ends, and the Tic-Tac-Toe experience (lobby, arena, board, game-sharing flow, gaming-hub integration). |
 | Moaad Hammouda | `mhammoud` | Developer (Backend) | Tic-Tac-Toe game engine: the rules class (win / draw detection, turn validation, move legality) and the initial games module wiring. |
 
-> With a five-person team the roles are specialised: a dedicated PO, PM and Tech
-> Lead, and every member also contributes as a developer.
+> With a four-person team, members hold multiple roles: dedicated PO, PM and Tech
+> Lead responsibilities are covered, and every member also contributes as a
+> developer.
 
 ---
 
@@ -370,7 +370,7 @@ erDiagram
 
 ## Features List
 
-### Authentication & session — *amoderan, abdali*
+### Authentication & session — *amoderan (API), smadani (UI)*
 - Register / login with email + password; bcrypt-hashed passwords; JWT issued on
   success. Register and login forms are validated on the client and re-validated
   server-side by DTOs.
@@ -378,7 +378,7 @@ erDiagram
   exchange, `/v2/me` fetch, find-or-create local user.
 - Persistent session in `AuthContext`; automatic profile refresh; logout.
 
-### User management — *amoderan (API), abdali & smadani (UI)*
+### User management — *amoderan (API), smadani (UI)*
 - View / edit profile (username, bio); **avatar upload** (Multer, 2 MB cap,
   default avatar when none set).
 - Live **online / offline** status, driven by WebSocket connect / disconnect.
@@ -396,7 +396,7 @@ erDiagram
 - On game end: result persisted to `game_results`, **ELO** recomputed for both
   players (K-factor 32), wins / losses / draws updated.
 
-### Tournament system — *amoderan (API), abdali (UI)*
+### Tournament system — *amoderan (API), smadani (UI)*
 - Create a tournament (size 4 / 8 / …); the creator is auto-registered.
 - Players register / unregister while status is `REGISTRATION`; capacity enforced.
 - When the last slot fills: participants are **shuffled and seeded**, the
@@ -406,7 +406,7 @@ erDiagram
   or crowns the champion if it was the final.
 - Notifications fired at every step (match ready, eliminated, tournament won).
 
-### Social layer — *aghalmi (API), abdali (UI)*
+### Social layer — *aghalmi (API), smadani (UI)*
 - **Feed**: create / edit / soft-delete posts; comments; likes on posts and
   comments.
 - **Private chat**: 1-to-1 conversations persisted in `conversations` /
@@ -441,7 +441,7 @@ erDiagram
 - Confirmation email sent for both actions (via `nodemailer`; logged if SMTP is
   not configured).
 
-### Design system & extra games — *abdali*
+### Design system & extra games — *smadani*
 - 13 reusable UI components (Button, Input, Modal, Card, Table, Tabs, Toast,
   Avatar, Badge, Dropdown, ProgressBar, Tooltip, MiniMediaPlayer), a shared
   colour palette, the Inter type scale, and an SVG icon set.
@@ -554,23 +554,18 @@ global search.
 `main` — solved with dedicated `merge/*` integration branches and a build + lint
 gate before each merge.
 
-### Sana Madani — `smadani` (Product Owner, Frontend)
-Set the product direction and feature priorities. Built the Tic-Tac-Toe
-front-end: the lobby (challenge a friend / join by ID), the arena and board
-components, the dedicated API client, the game-sharing flow, and auto-refresh
-polling with user-facing error handling; plus the profile and settings screens
-and the gaming-hub integration.
-*Challenge:* showing the correct end-of-game screen to the player who did *not*
-make the winning move — solved by keeping a finished game readable on the server
-for a short grace period instead of deleting it immediately.
-
-### Abdoulkadir Ali — `abdali` (Developer, Frontend)
-Built the frontend foundation: the design system and reusable UI kit, the routing
-and context architecture, the authentication screens, the social feed / chat /
-notifications UI, the legal pages, and the arcade game front-ends.
-*Challenge:* one large frontend that had to stay usable even when parts of the
+### Sana Madani — `smadani` (Product Owner, Lead Frontend)
+Set the product direction and feature priorities, and built the entire frontend:
+the design system and reusable UI kit, the routing and context architecture, the
+authentication screens, the social feed / chat / notifications UI, the legal
+pages, and the arcade game front-ends — plus the Tic-Tac-Toe experience (lobby,
+arena, board, game-sharing flow, gaming-hub integration).
+*Challenges:* (1) one large frontend that had to stay usable while parts of the
 backend were still in progress — solved with a typed API client that falls back
-to representative local data per endpoint, so screens are always demonstrable.
+to representative local data per endpoint, so every screen is demonstrable.
+(2) Showing the correct end-of-game screen to the player who did *not* make the
+winning move — solved by keeping a finished game readable on the server for a
+short grace period instead of deleting it immediately.
 
 ### Moaad Hammouda — `mhammoud` (Developer, Backend)
 Implemented the Tic-Tac-Toe engine: the board model, turn and move-legality
