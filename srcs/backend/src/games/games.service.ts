@@ -100,7 +100,10 @@ export class GamesService {
 
     if (game.isFinished()) {
       await this.saveGameResult(game);
-      this.games.delete(gameId);
+      // On garde la partie terminée accessible un court instant : le client de
+      // l'autre joueur (polling GET /games/:id) doit encore pouvoir lire l'état
+      // final (statut + gagnant) au lieu de recevoir un 404.
+      this.scheduleGameCleanup(gameId);
     }
 
     return gameState;
@@ -175,5 +178,17 @@ export class GamesService {
 
   private getGameErrorMessage(error: unknown): string {
     return error instanceof Error ? error.message : 'Action impossible.';
+  }
+
+  private static readonly FINISHED_GAME_TTL_MS = 60_000;
+
+  // Purge une partie terminée après un délai de grâce, le temps que les deux
+  // joueurs aient pu récupérer l'état final.
+  private scheduleGameCleanup(gameId: string): void {
+    const timer = setTimeout(() => {
+      this.games.delete(gameId);
+    }, GamesService.FINISHED_GAME_TTL_MS);
+
+    timer.unref?.();
   }
 }
