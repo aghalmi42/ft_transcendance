@@ -17,17 +17,24 @@ export function TicTacToeLobby() {
 
     useEffect(() => {
         async function fetchFriends() {
-            const data = await api.getFriends();
-            setFriendsList(data);
+            try {
+                // Le backend GET /friends renvoie des User[] (FriendsService.getFriendsList),
+                // même si le type partagé api.getFriends() annonce encore Friendship[].
+                const data = (await api.getFriends()) as unknown as User[];
+                setFriendsList(Array.isArray(data) ? data : []);
+            } catch {
+                setFriendsList([]);
+            }
         }
         fetchFriends();
     }, []);
 
     async function handleChallenge(friendId: string) {
+        setError(null)
         try {
-            let res = await createGame(friendId)
+            const res = await createGame(friendId)
             setGameId(res.gameId)
-            let game = await getGame(res.gameId)
+            const game = await getGame(res.gameId)
             setGameState(game)
         }
         catch (err) {
@@ -39,8 +46,9 @@ export function TicTacToeLobby() {
         }
     }
     async function handleJoin() {
+        setError(null)
         try {
-            let res = await joinGame(joinInput.trim())
+            const res = await joinGame(joinInput.trim())
             setGameState(res)
         }
         catch (err) {

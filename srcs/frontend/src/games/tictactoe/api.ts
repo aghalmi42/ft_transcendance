@@ -1,14 +1,16 @@
 import type { TicTacToeState } from './types';
-import { api } from '../../services/api'; // ajuste le chemin relatif selon où se trouve ton dossier tictactoe
+import { api } from '../../services/api';
+import { APP_CONFIG } from '../../config/appConfig';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE = APP_CONFIG.API_BASE_URL;
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const token = api.getToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${api.getToken()}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });

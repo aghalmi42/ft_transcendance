@@ -1,10 +1,8 @@
-import { useState } from "react";
-import { useEffect } from "react";
-import { makeMove } from "./api";
+import { useCallback, useEffect, useState } from "react";
+import { getGame, makeMove } from "./api";
 import { TicTacToeBoard } from "./TicTacToeBoard";
 import type { TicTacToeState } from "./types";
 import { useAuth } from "../../context/AuthContext";
-import { getGame } from "./api"
 import Button from "../../components/common/Button";
 
 interface TicTacToeArenaProps {
@@ -15,7 +13,21 @@ export function TicTacToeArena({ initialState }: TicTacToeArenaProps) {
     const [gameState, setGameState] = useState<TicTacToeState>(initialState)
     const { user } = useAuth();
     const [error, setError] = useState<string | null>(null)
-    
+
+    const handleRefresh = useCallback(async () => {
+        try {
+            const game = await getGame(initialState.gameId)
+            setGameState(game)
+            setError(null)
+        }
+        catch (err) {
+            if (err instanceof Error)
+                setError(err.message)
+            else
+                setError("Une erreur inattendue est survenue")
+        }
+    }, [initialState.gameId])
+
     useEffect(() => {
         if (gameState.status === 'finished' || gameState.status === 'draw')
             return;
@@ -25,12 +37,13 @@ export function TicTacToeArena({ initialState }: TicTacToeArenaProps) {
         }, 2000);
 
         return () => clearInterval(intervalId);
-    }, [gameState.status]);
+    }, [gameState.status, handleRefresh]);
 
     async function handleCellClick(index: number) {
         try {
-            let res = await makeMove(gameState.gameId, index)
+            const res = await makeMove(gameState.gameId, index)
             setGameState(res)
+            setError(null)
         }
         catch (err) {
             if (err instanceof Error) {
@@ -40,22 +53,10 @@ export function TicTacToeArena({ initialState }: TicTacToeArenaProps) {
                 setError("Une erreur inattendue est survenue.")
         }
     }
-    async function handleRefresh() {
-        try {
-            let game = await getGame(gameState.gameId)
-            setGameState(game)
-        }
-        catch (err) {
-            if (err instanceof Error)
-                setError(err.message)
-            else
-                setError("Une erreur inattendue est survenue")
-        }
-    }
     function isMyTurn() {
         if (gameState.status !== 'playing')
             return false;
-        if ((gameState.currentPlayer === 'X' && gameState.playerXId === user.id) || (gameState.currentPlayer === 'O' && gameState.playerOId === user.id))
+        if ((gameState.currentPlayer === 'X' && gameState.playerXId === user?.id) || (gameState.currentPlayer === 'O' && gameState.playerOId === user?.id))
             return true;
         else
             return false;
@@ -64,7 +65,7 @@ export function TicTacToeArena({ initialState }: TicTacToeArenaProps) {
         if (gameState.status === 'draw')
             return "Égalité"
         if (gameState.status === 'finished'){
-            if ((gameState.winner === 'X' && gameState.playerXId === user.id) || (gameState.winner === 'O' && gameState.playerOId === user.id))
+            if ((gameState.winner === 'X' && gameState.playerXId === user?.id) || (gameState.winner === 'O' && gameState.playerOId === user?.id))
                 return "Vous avez gagné"
             else
                 return "Vous avez perdu"
@@ -77,6 +78,7 @@ export function TicTacToeArena({ initialState }: TicTacToeArenaProps) {
         }
         if (gameState.status === 'waiting')
             return "En attente de votre adversaire"
+        return null
     }
     return (
         <div className="max-w-md mx-auto space-y-6 text-center">
