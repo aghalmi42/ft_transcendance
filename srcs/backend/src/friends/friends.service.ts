@@ -105,7 +105,23 @@ export class FriendsService {
       throw new NotFoundException('Relation amicale introuvable.');
     }
 
+    const removedUser = await this.userRepository.findOneBy({ id: friendId });
+
     await this.friendshipsRepository.remove(friendship);
+
+    // Notify the other person that the friendship was ended (a deletion action,
+    // so the notification system covers create / update / delete).
+    if (removedUser) {
+      await this.notificationsService
+        .create({
+          recipient: removedUser,
+          actor: { id: userId } as User,
+          type: NotificationType.FRIEND_REMOVED,
+          entityId: userId,
+        })
+        .catch(() => undefined);
+    }
+
     return { success: true };
   }
 

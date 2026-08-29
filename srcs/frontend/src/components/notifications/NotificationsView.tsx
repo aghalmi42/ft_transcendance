@@ -74,14 +74,62 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
         return '⚔️';
       case 'FRIEND_REQUEST':
         return '👥';
+      case 'FRIEND_ACCEPTED':
+        return '🤝';
+      case 'FRIEND_REMOVED':
+        return '💔';
+      case 'MESSAGE':
+        return '✉️';
       case 'MATCH_RESULT':
+      case 'TOURNAMENT_WON':
         return '🏆';
+      case 'TOURNAMENT_MATCH_READY':
+        return '⚔️';
+      case 'TOURNAMENT_ELIMINATED':
+        return '🚪';
       case 'LIKE':
+      case 'POST_LIKED':
+      case 'COMMENT_LIKED':
         return '❤️';
       case 'COMMENT':
+      case 'POST_COMMENTED':
         return '💬';
       default:
         return '🔔';
+    }
+  };
+
+  // The backend stores only { type, actor, entityId } — it does not persist a
+  // title/message. Derive readable copy here so every notification type renders
+  // properly (mock data that already carries title/message is left untouched).
+  const describeNotif = (notif: NotificationItem): { title: string; message: string } => {
+    if (notif.title || notif.message) {
+      return { title: notif.title || '', message: notif.message || '' };
+    }
+    const who = (notif as { actor?: { username?: string } }).actor?.username || 'Quelqu’un';
+    switch (notif.type) {
+      case 'POST_LIKED':
+        return { title: 'Nouveau j’aime', message: `${who} a aimé votre publication.` };
+      case 'COMMENT_LIKED':
+        return { title: 'Nouveau j’aime', message: `${who} a aimé votre commentaire.` };
+      case 'POST_COMMENTED':
+        return { title: 'Nouveau commentaire', message: `${who} a commenté votre publication.` };
+      case 'FRIEND_REQUEST':
+        return { title: 'Demande d’ami', message: `${who} souhaite vous ajouter en ami.` };
+      case 'FRIEND_ACCEPTED':
+        return { title: 'Demande acceptée', message: `${who} a accepté votre demande d’ami.` };
+      case 'FRIEND_REMOVED':
+        return { title: 'Ami retiré', message: `${who} vous a retiré de sa liste d’amis.` };
+      case 'MESSAGE':
+        return { title: 'Nouveau message', message: `${who} vous a envoyé un message.` };
+      case 'TOURNAMENT_MATCH_READY':
+        return { title: 'Match de tournoi prêt', message: 'Votre prochain match de tournoi est prêt à être joué.' };
+      case 'TOURNAMENT_ELIMINATED':
+        return { title: 'Éliminé du tournoi', message: 'Vous avez été éliminé du tournoi. Merci d’avoir participé !' };
+      case 'TOURNAMENT_WON':
+        return { title: 'Tournoi remporté \u{1F3C6}', message: 'Félicitations, vous avez gagné le tournoi !' };
+      default:
+        return { title: 'Notification', message: '' };
     }
   };
 
@@ -120,6 +168,7 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
       ) : (
         <div className="space-y-3">
           {notifications.map((notif) => {
+            const { title: notifTitle, message: notifMessage } = describeNotif(notif);
             const timeStr = notif.createdAt
               ? new Date(notif.createdAt).toLocaleDateString('fr-FR', {
                   day: 'numeric',
@@ -145,12 +194,12 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
 
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-bold text-sm text-white">{notif.title}</h4>
+                      <h4 className="font-bold text-sm text-white">{notifTitle}</h4>
                       {!notif.read && (
                         <span className="w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
                       )}
                     </div>
-                    <p className="text-xs text-slate-300">{notif.message}</p>
+                    <p className="text-xs text-slate-300">{notifMessage}</p>
                     <span className="text-[10px] text-slate-500 font-mono block">{timeStr}</span>
                   </div>
                 </div>
