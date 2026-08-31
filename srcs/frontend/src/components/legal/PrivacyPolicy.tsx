@@ -50,7 +50,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onNavigate }) => {
             {"Vos informations sont utilisées exclusivement pour :"}
           </p>
           <ul className="list-disc list-inside space-y-1 text-slate-400 pl-2">
-            <li>{"Gérer votre compte utilisateur et assurer l'authentification sécurisée (JWT / 2FA)."}</li>
+            <li>{"Gérer votre compte utilisateur et assurer l'authentification sécurisée (JWT)."}</li>
             <li>{"Calculer les classements et synchroniser les parties multi-joueurs en temps réel."}</li>
             <li>{"Faciliter la mise en relation avec d'autres joueurs de l'école 42."}</li>
           </ul>

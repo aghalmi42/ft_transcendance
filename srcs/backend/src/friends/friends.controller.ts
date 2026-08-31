@@ -3,6 +3,7 @@ import { FriendsService } from './friends.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
+import { Friendship } from './entities/friends.entity';
 
 @Controller('friends')
 @UseGuards(JwtAuthGuard)
@@ -30,7 +31,7 @@ export class FriendsController {
   }
 
   @Get()
-  getFriends(@CurrentUser('id') userId: string) {
+  getFriends(@CurrentUser('id') userId: string): Promise<Friendship[]> {
     return this.friendsService.getFriendsList(userId);
   }
 }

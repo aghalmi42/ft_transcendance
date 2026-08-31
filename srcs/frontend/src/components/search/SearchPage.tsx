@@ -159,7 +159,6 @@ export const SearchPage: React.FC<SearchPageProps> = ({
         </Card>
       ) : (
         <div className="space-y-6">
-          {/* USERS RESULTS */}
           {(activeTab === 'all' || activeTab === 'users') && users.length > 0 && (
             <div className="space-y-3">
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
@@ -206,7 +205,6 @@ export const SearchPage: React.FC<SearchPageProps> = ({
             </div>
           )}
 
-          {/* POSTS RESULTS */}
           {(activeTab === 'all' || activeTab === 'posts') && posts.length > 0 && (
             <div className="space-y-3">
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">

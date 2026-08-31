@@ -1,8 +1,10 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import type { ChatMessage } from '../types';
 import { useAuth } from './AuthContext';
 import { useNotification } from './NotificationContext';
 import { socketService } from '../services/socket';
+import { api } from '../services/api';
+
 interface ActiveDuelInvite {
   id: string;
   senderName: string;
@@ -19,21 +21,31 @@ interface ChatContextType {
   blockedUserIds: string[];
   toggleBlockUser: (userId: string) => void;
   isUserBlocked: (userId: string) => boolean;
-  sendGameChallenge: (receiverId: string, gameType: 'PONG' | 'TICTACTOE' | 'QUIZ' | 'SNAKE' | string, options?: any) => void;
+  sendGameChallenge: (receiverId: string, gameType: 'PONG' | 'TICTACTOE', options?: any) => Promise<string | undefined>;
   activeInvite: ActiveDuelInvite | null;
   clearActiveInvite: () => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
+const mapMessage = (raw: any, meId: string, peerId: string): ChatMessage => ({
+  id: raw.id,
+  senderId: raw.sender?.id ?? raw.senderId,
+  receiverId: (raw.sender?.id ?? raw.senderId) === meId ? peerId : meId,
+  content: raw.content,
+  timestamp: new Date(raw.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+});
+
 export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, token } = useAuth();
   const { addToast } = useNotification();
-  const [activeFriendId, setActiveFriendId] = useState<string | null>(null);
+  const [activeFriendId, setActiveFriendIdState] = useState<string | null>(null);
   const [blockedUserIds, setBlockedUserIds] = useState<string[]>([]);
   const [activeInvite, setActiveInvite] = useState<ActiveDuelInvite | null>(null);
-
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+
+  const conversationByPeer = useRef<Map<string, string>>(new Map());
+  const loadedConversations = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (token && socketService && typeof socketService.connectChat === 'function') {
@@ -43,45 +55,78 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.warn('[ChatContext] WebSocket connection notice:', e);
       }
     }
+  }, [token]);
 
-    const handleIncomingMessage = (msg: any) => {
-      const formatted: ChatMessage = {
-        id: msg.id || 'msg-' + Date.now(),
-        senderId: msg.sender?.id || msg.senderId,
-        receiverId: msg.receiver?.id || msg.receiverId,
-        content: msg.content,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isGameInvite: msg.isGameInvite,
-        gameInviteDetails: msg.gameInviteDetails,
-      };
+  useEffect(() => {
+    if (!user) return;
+    api.getConversations().then((convs: any[]) => {
+      convs.forEach((c) => {
+        const peer = c.userA?.id === user.id ? c.userB : c.userA;
+        if (peer) conversationByPeer.current.set(peer.id, c.id);
+      });
+    }).catch(() => {});
+  }, [user]);
 
-      setMessages((prev) => [...prev, formatted]);
-
-      if (formatted.senderId !== user?.id) {
-        if (formatted.isGameInvite) {
-          const senderName = msg.sender?.username || formatted.gameInviteDetails?.senderName || 'Un joueur';
-          setActiveInvite({
-            id: formatted.id,
-            senderName,
-            gameType: formatted.gameInviteDetails?.gameType || 'PONG',
-            roomId: formatted.gameInviteDetails?.roomId,
-            opponentId: formatted.senderId,
-          });
-          addToast(`🏓 Défi Pong 1v1 reçu de ${senderName} !`, 'warning');
-        } else {
-          addToast(`Nouveau message de ${msg.sender?.username || 'un utilisateur'}`, 'info');
-        }
+  const ensureConversationLoaded = useCallback(async (peerId: string): Promise<string | null> => {
+    if (!user) return null;
+    let conversationId = conversationByPeer.current.get(peerId) ?? null;
+    if (!conversationId) {
+      try {
+        const conversation = await api.getOrCreateConversation(peerId);
+        conversationId = conversation.id;
+        if (conversationId) conversationByPeer.current.set(peerId, conversationId);
+      } catch {
+        return null;
       }
+    }
+    if (conversationId && !loadedConversations.current.has(conversationId)) {
+      loadedConversations.current.add(conversationId);
+      try {
+        const history = await api.getConversationMessages(conversationId);
+        const mapped = (history as any[]).map((m) => mapMessage(m, user.id, peerId));
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          return [...prev, ...mapped.filter((m) => !existingIds.has(m.id))];
+        });
+      } catch {
+        loadedConversations.current.delete(conversationId);
+      }
+    }
+    return conversationId;
+  }, [user]);
+
+  const setActiveFriendId = (id: string | null) => {
+    setActiveFriendIdState(id);
+    if (id) {
+      ensureConversationLoaded(id).then((conversationId) => {
+        if (conversationId) api.markConversationRead(conversationId).catch(() => {});
+      });
+    }
+  };
+
+  useEffect(() => {
+    const handleIncomingMessage = (msg: any) => {
+      if (!user) return;
+      const peerId: string = msg.sender?.id ?? msg.senderId;
+      if (!peerId) return;
+      if (msg.conversationId) {
+        conversationByPeer.current.set(peerId, msg.conversationId);
+        loadedConversations.current.add(msg.conversationId);
+      }
+
+      const formatted = mapMessage(msg, user.id, peerId);
+      setMessages((prev) => (prev.some((m) => m.id === formatted.id) ? prev : [...prev, formatted]));
+      addToast(`Nouveau message de ${msg.sender?.username || 'un utilisateur'}`, 'info');
     };
 
     const handleChallenge = (challenge: any) => {
-      const senderName = challenge.sender?.username || challenge.senderName || 'Joueur';
+      const senderName = challenge.sender?.username || 'Joueur';
       setActiveInvite({
         id: 'challenge-' + Date.now(),
         senderName,
         gameType: challenge.gameType || 'PONG',
         roomId: challenge.roomId,
-        opponentId: challenge.sender?.id || challenge.senderId,
+        opponentId: challenge.sender?.id,
       });
       addToast(`Défi ${challenge.gameType} reçu de ${senderName} !`, 'warning');
     };
@@ -97,66 +142,61 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         socketService.off('incomingGameChallenge', handleChallenge);
       }
     };
-  }, [token, user]);
+  }, [user, addToast]);
 
-  const sendMessage = (
-    receiverId: string,
-    content: string,
-    isGameInvite = false,
-    gameInviteDetails?: any
-  ) => {
+  const sendMessage = (receiverId: string, content: string) => {
     if (!user) return;
     if (blockedUserIds.includes(receiverId)) {
       addToast("Impossible d'envoyer un message : utilisateur bloqué.", 'error');
       return;
     }
 
-    const newMsg: ChatMessage = {
-      id: 'msg-' + Date.now(),
-      senderId: user.id,
-      receiverId,
-      content,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isGameInvite,
-      gameInviteDetails,
-    };
-
-    setMessages((prev) => [...prev, newMsg]);
-
-    socketService.sendChat('sendDirectMessage', {
-      receiverId,
-      content,
-      isGameInvite,
-      gameInviteDetails,
+    ensureConversationLoaded(receiverId).then(async (conversationId) => {
+      if (!conversationId) {
+        addToast("Impossible d'envoyer le message.", 'error');
+        return;
+      }
+      try {
+        const saved = await api.sendConversationMessage(conversationId, content);
+        const formatted = mapMessage(saved, user.id, receiverId);
+        setMessages((prev) => (prev.some((m) => m.id === formatted.id) ? prev : [...prev, formatted]));
+      } catch {
+        addToast("Le message n'a pas pu être envoyé.", 'error');
+      }
     });
   };
 
-  const sendGameChallenge = (
+  const sendGameChallenge = async (
     receiverId: string,
-    gameType: 'PONG' | 'TICTACTOE' | 'QUIZ' | 'SNAKE' | string,
+    gameType: 'PONG' | 'TICTACTOE',
     options?: { targetScore?: number }
-  ) => {
-    if (!user) return;
+  ): Promise<string | undefined> => {
+    if (!user) return undefined;
 
-    const roomId = `duel_${[user.id, receiverId].sort().join('_')}_${Date.now().toString().slice(-4)}`;
+    let roomId = `duel_${[user.id, receiverId].sort().join('_')}_${Date.now().toString().slice(-4)}`;
 
-    const inviteDetails = {
-      gameType,
-      status: 'PENDING',
-      roomId,
-      senderId: user.id,
-      senderName: user.username,
-      targetScore: options?.targetScore,
-    };
+    if (gameType === 'TICTACTOE') {
+      try {
+        const { gameId } = await api.createTicTacToeGame(receiverId);
+        roomId = gameId;
+      } catch {
+        addToast("Impossible de créer la partie de Tic-Tac-Toe.", 'error');
+        return undefined;
+      }
+    }
 
-    sendMessage(
+    socketService.sendChat('sendGameChallenge', {
       receiverId,
-      `🎯 Défi lancé pour une partie de ${gameType} !`,
-      true,
-      inviteDetails
-    );
+      gameType,
+      roomId,
+      targetScore: options?.targetScore,
+    });
+
+    sendMessage(receiverId, `🎯 Défi lancé pour une partie de ${gameType} !`);
 
     addToast(`Défi ${gameType} envoyé avec succès à l'adversaire !`, 'success');
+
+    return roomId;
   };
 
   const toggleBlockUser = (userId: string) => {
@@ -204,7 +244,7 @@ const defaultChatFallback: ChatContextType = {
   blockedUserIds: [],
   toggleBlockUser: () => {},
   isUserBlocked: () => false,
-  sendGameChallenge: () => {},
+  sendGameChallenge: async () => undefined,
   activeInvite: null,
   clearActiveInvite: () => {},
 };

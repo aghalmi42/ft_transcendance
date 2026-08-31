@@ -30,7 +30,6 @@ export interface User {
   wins?: number;
   losses?: number;
   draws?: number;
-  twoFactorEnabled?: boolean;
   eloRating?: number;
   createdAt?: string;
   updatedAt?: string;

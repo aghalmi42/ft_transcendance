@@ -82,8 +82,6 @@ export class AuthService {
     );
   }
 
-  // Builds the 42 authorize URL. The "state" is a short-lived JWT of our own,
-  // which lets us verify the callback wasn't forged without needing server-side sessions.
   getFortyTwoAuthorizeUrl(): string {
     const clientId = this.configService.get<string>('FORTYTWO_CLIENT_ID');
     const redirectUri = this.configService.get<string>('FORTYTWO_CALLBACK_URL');

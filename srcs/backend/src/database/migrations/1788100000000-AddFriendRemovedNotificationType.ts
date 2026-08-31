@@ -8,8 +8,5 @@ export class AddFriendRemovedNotificationType1788100000000 implements MigrationI
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        // Postgres cannot remove a single enum value without recreating the
-        // type (destructive to existing rows) — intentionally a no-op down,
-        // same as the earlier notification-type additions.
     }
 }

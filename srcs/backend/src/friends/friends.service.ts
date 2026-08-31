@@ -109,8 +109,6 @@ export class FriendsService {
 
     await this.friendshipsRepository.remove(friendship);
 
-    // Notify the other person that the friendship was ended (a deletion action,
-    // so the notification system covers create / update / delete).
     if (removedUser) {
       await this.notificationsService
         .create({
@@ -125,15 +123,16 @@ export class FriendsService {
     return { success: true };
   }
 
-  async getFriendsList(userId: string) {
-    const friendships = await this.friendshipsRepository.find({
+  async getFriendsList(userId: string): Promise<Friendship[]> {
+    return this.friendshipsRepository.find({
       where: [
         { sender: { id: userId }, status: FriendshipStatus.ACCEPTED },
         { receiver: { id: userId }, status: FriendshipStatus.ACCEPTED },
+        { sender: { id: userId }, status: FriendshipStatus.PENDING },
+        { receiver: { id: userId }, status: FriendshipStatus.PENDING },
       ],
       relations: ['sender', 'receiver'],
+      order: { createdAt: 'DESC' },
     });
-
-    return friendships.map((f) => (f.sender.id === userId ? f.receiver : f.sender));
   }
 }

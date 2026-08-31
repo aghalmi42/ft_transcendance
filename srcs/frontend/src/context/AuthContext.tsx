@@ -31,8 +31,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     let isMounted = true;
     const initAuth = async () => {
-      // Pick up the token handed back by an OAuth redirect (e.g. "Se connecter avec 42"),
-      // which lands the browser back on "/?oauth_token=..." since this SPA has no router.
       const params = new URLSearchParams(window.location.search);
       const oauthToken = params.get('oauth_token');
       const oauthError = params.get('oauth_error');
@@ -123,7 +121,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const me = await api.getMe();
       setUser(me);
     } catch {
-      // transient failure (offline, expired token mid-session) — keep last known state
     }
   };
 
@@ -145,8 +142,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout();
   };
 
-  // Pulls the real, server-side export (profile + posts + comments + likes +
-  // friendships + game history + notifications + messages) — no local/mock data.
   const exportData = async () => {
     if (!user) return;
     const data = await api.exportGdprData();

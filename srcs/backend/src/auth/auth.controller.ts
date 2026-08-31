@@ -18,7 +18,6 @@ export class AuthController {
         return this.authService.login(loginUserDto);
     }
 
-    // Remote authentication (OAuth 2.0) — 42 intranet.
     @Get('42/status')
     fortyTwoStatus() {
         return { configured: this.authService.isFortyTwoConfigured() };

@@ -11,13 +11,6 @@ import type {
   TournamentPlayer,
   TournamentMatch
 } from '../types';
-import {
-  MOCK_USERS,
-  CURRENT_DEMO_USER,
-  MOCK_POSTS,
-  MOCK_COMMENTS,
-  MOCK_FRIENDSHIPS
-} from './mockData';
 import { APP_CONFIG } from '../config/appConfig';
 
 export const API_BASE_URL = APP_CONFIG.API_BASE_URL;
@@ -94,7 +87,6 @@ class ApiService {
         headers: { ...this.getHeaders(), ...(options.headers || {}) },
       });
     } catch (err) {
-      // Network/connectivity failure: the backend itself is unreachable.
       this.backendAvailable = false;
       this.lastBackendFailure = Date.now();
       throw err;
@@ -102,14 +94,11 @@ class ApiService {
     this.backendAvailable = true;
     this.lastBackendFailure = 0;
     if (!res.ok) {
-      // A real HTTP response from a live backend (e.g. 401 invalid credentials,
-      // 409 conflict) is a business-logic error, not a connectivity failure —
-      // it must propagate as-is and must NOT trip the offline fallback.
       let message = `HTTP ${res.status}`;
       try {
         const body = await res.json();
         if (body?.message) message = Array.isArray(body.message) ? body.message.join(', ') : body.message;
-      } catch { /* no JSON body */ }
+      } catch {}
       throw new Error(message);
     }
     return await res.json();
@@ -126,9 +115,6 @@ class ApiService {
   public async login(emailOrPayload: string | { email: string; password?: string }, passwordParam?: string): Promise<AuthResponse> {
     const email = typeof emailOrPayload === 'object' ? emailOrPayload.email : emailOrPayload;
     const password = typeof emailOrPayload === 'object' ? emailOrPayload.password : passwordParam;
-    // Authentication must always hit the real backend and validate against the
-    // database. No mock fallback here — falling back on a rejected login would
-    // let any input in (and previously defaulted to the mock "Administrator" user).
     const res = await this.request<AuthResponse>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
     if (res.accessToken) this.setToken(res.accessToken);
     if (res.user) this.saveLocalUser(res.user);
@@ -139,25 +125,16 @@ class ApiService {
     const username = typeof usernameOrPayload === 'object' ? usernameOrPayload.username : usernameOrPayload;
     const email = typeof usernameOrPayload === 'object' ? usernameOrPayload.email : (emailParam || '');
     const password = typeof usernameOrPayload === 'object' ? usernameOrPayload.password : passwordParam;
-    // Same as login: must hit the real backend so the account actually lands
-    // in the database, instead of silently creating a fake local-only user.
     const res = await this.request<AuthResponse>('/auth/register', { method: 'POST', body: JSON.stringify({ username, email, password }) });
     if (res.accessToken) this.setToken(res.accessToken);
     if (res.user) this.saveLocalUser(res.user);
     return res;
   }
 
-  // No mock fallback: an invalid/expired token must not silently resolve to
-  // a cached or demo user. AuthContext already handles the rejection itself.
   public getMe = () => this.request<User>('/users/me');
 
-  // Real GDPR export straight from the backend (profile, posts, comments,
-  // likes, friendships, game history, notifications, messages sent) — no
-  // mock fallback, a partial/fake export would defeat the point of it.
   public exportGdprData = () => this.request<Record<string, unknown>>('/gdpr/export');
 
-  // No mock fallback: a profile edit that only "succeeds" in localStorage would
-  // mislead the user into thinking it was saved when it wasn't (silent data loss).
   public updateProfile = async (payload: Partial<User>): Promise<User> => {
     const updated = await this.request<User>('/users/me', { method: 'PATCH', body: JSON.stringify(payload) });
     this.saveLocalUser(updated);
@@ -187,7 +164,7 @@ class ApiService {
       try {
         const body = await res.json();
         if (body?.message) message = Array.isArray(body.message) ? body.message.join(', ') : body.message;
-      } catch { /* no JSON body */ }
+      } catch {}
       throw new Error(message);
     }
     const user = await res.json();
@@ -197,53 +174,66 @@ class ApiService {
 
   public deleteUser = (id: string) => this.request<void>(`/users/${id}`, { method: 'DELETE' });
 
-  // No mock fallback: a password change that only "succeeds" locally would be
-  // actively dangerous (user believes their credentials rotated when they didn't).
   public changePassword = (currentPassword: string, newPassword: string) =>
     this.request<{ success: boolean }>('/users/me/password', {
       method: 'PATCH',
       body: JSON.stringify({ currentPassword, newPassword }),
     });
 
-  public getPosts = () => this.fallback(this.request<Post[]>('/posts'), MOCK_POSTS);
+  public getPosts = () => this.fallback(this.request<Post[]>('/posts'), [] as Post[]);
 
-  public createPost = (content: string, tags: string[] = [], gameResult?: any) => this.fallback(
-    this.request<Post>('/posts', { method: 'POST', body: JSON.stringify({ content, tags, gameResult }) }),
+  public createPost = (content: string) => this.fallback(
+    this.request<Post>('/posts', { method: 'POST', body: JSON.stringify({ content }) }),
     () => {
-      const newPost: Post = {
-        id: `post-${Date.now()}`, content, author: this.getLocalUser() || CURRENT_DEMO_USER,
-        likesCount: 0, isLiked: false, commentsCount: 0, tags, gameResult, createdAt: new Date().toISOString(),
-      };
-      MOCK_POSTS.unshift(newPost);
-      return newPost;
+      const localUser = this.getLocalUser();
+      return {
+        id: `post-${Date.now()}`,
+        content,
+        author: localUser || { id: 'local-user', username: 'Moi', email: '', status: 'ONLINE' },
+        likesCount: 0,
+        isLiked: false,
+        commentsCount: 0,
+        createdAt: new Date().toISOString(),
+      } as Post;
     }
   );
 
   public deletePost = (id: string) => this.fallback(
     this.request<void>(`/posts/${id}`, { method: 'DELETE' }),
-    () => {
-      const idx = MOCK_POSTS.findIndex(p => p.id === id);
-      if (idx !== -1) MOCK_POSTS.splice(idx, 1);
-    }
+    undefined,
   );
 
   public getPostComments = (postId: string) => this.fallback(
     this.request<Comment[]>(`/posts/${postId}/comments`),
-    MOCK_COMMENTS[postId] || []
+    [] as Comment[]
   );
 
   public createComment = (postId: string, content: string) => this.fallback(
     this.request<Comment>(`/posts/${postId}/comments`, { method: 'POST', body: JSON.stringify({ content }) }),
     () => {
-      const newComment: Comment = {
-        id: `comm-${Date.now()}`, postId, content, author: this.getLocalUser() || CURRENT_DEMO_USER,
+      const localUser = this.getLocalUser();
+      return {
+        id: `comm-${Date.now()}`,
+        postId,
+        content,
+        author: localUser || { id: 'local-user', username: 'Moi', email: '', status: 'ONLINE' },
         createdAt: new Date().toISOString(),
-      };
-      if (!MOCK_COMMENTS[postId]) MOCK_COMMENTS[postId] = [];
-      MOCK_COMMENTS[postId].push(newComment);
-      return newComment;
+      } as Comment;
     }
   );
+
+  public getConversations = () => this.fallback(this.request<any[]>('/conversations'), [] as any[]);
+  public getOrCreateConversation = (userId: string) =>
+    this.request<any>(`/conversations/with/${userId}`, { method: 'POST' });
+  public getConversationMessages = (conversationId: string) =>
+    this.fallback(this.request<any[]>(`/conversations/${conversationId}/messages`), [] as any[]);
+  public sendConversationMessage = (conversationId: string, content: string) =>
+    this.request<any>(`/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({ content }),
+    });
+  public markConversationRead = (conversationId: string) =>
+    this.fallback(this.request<any>(`/conversations/${conversationId}/read`, { method: 'PATCH' }), { updated: 0 });
 
   public getFriends = () => this.fallback(this.request<Friendship[]>('/friends'), []);
   public getAllUsers = () => this.fallback(this.request<User[]>('/users'), () => { const me = this.getLocalUser(); return me ? [me] : []; });
@@ -264,28 +254,12 @@ class ApiService {
           streak: Math.min(u.wins || 0, 5),
         }));
       }),
-      () => {
-        const me = this.getLocalUser();
-        const list = [...MOCK_USERS];
-        if (me && !list.some(u => u.id === me.id)) list.unshift(me);
-        return list.map((u, idx) => ({
-          rank: idx + 1, user: u, rating: u.eloRating || Math.max(800, 1400 - idx * 60),
-          wins: u.wins || 0, losses: u.losses || 0,
-          winRate: (u.wins || 0) + (u.losses || 0) > 0 ? Math.round(((u.wins || 0) / ((u.wins || 0) + (u.losses || 0))) * 100) : 60,
-          streak: Math.min(u.wins || 0, 5),
-        }));
-      }
+      [] as LeaderboardEntry[]
     );
   }
 
   public getLeaderboardSync(): LeaderboardEntry[] {
-    const me = this.getLocalUser();
-    const list = [...MOCK_USERS];
-    if (me && !list.some(u => u.id === me.id)) list.unshift(me);
-    return list.map((u, idx) => ({
-      rank: idx + 1, user: u, rating: u.eloRating || Math.max(800, 1400 - idx * 60),
-      wins: u.wins || 0, losses: u.losses || 0, winRate: 50, streak: 0,
-    }));
+    return [];
   }
 
   public getMatchHistory = () => this.fallback(
@@ -293,8 +267,6 @@ class ApiService {
     [] as GameMatchHistory[]
   );
 
-  // Same shape, for viewing another player's public match history (e.g. from
-  // their profile card).
   public getMatchHistoryFor = (userId: string) => this.fallback(
     this.request<any[]>(`/matches/history/${userId}`).then(mapMatchHistoryList),
     [] as GameMatchHistory[]
@@ -304,12 +276,10 @@ class ApiService {
   public togglePostLike = (postId: string) => this.fallback(this.request<any>(`/posts/${postId}/like`, { method: 'POST' }), { success: true });
   public getNotifications = () => this.fallback(this.request<any[]>('/notifications'), []);
   public markNotificationAsRead = (id: string) => this.fallback(this.request<any>(`/notifications/${id}/read`, { method: 'PATCH' }), { success: true });
-  public markAllNotificationsAsRead = () => this.fallback(this.request<any>('/notifications/read-all', { method: 'POST' }), { success: true });
+  public markAllNotificationsAsRead = () => this.fallback(this.request<any>('/notifications/read-all', { method: 'PATCH' }), { success: true });
   public deleteNotification = (id: string) => this.fallback(this.request<any>(`/notifications/${id}`, { method: 'DELETE' }), { success: true });
   public searchAll = (query: string) => this.fallback(this.request<any>(`/search?q=${encodeURIComponent(query)}`), { users: [], games: [], posts: [] });
 
-  // Public API key management (self-service). The raw key is only ever
-  // returned once, right here, at creation time.
   public listApiKeys = () => this.fallback(this.request<any[]>('/api-keys'), [] as any[]);
   public createApiKey = (label: string) =>
     this.request<{ id: string; key: string; label: string }>('/api-keys', { method: 'POST', body: JSON.stringify({ label }) });
@@ -344,9 +314,6 @@ class ApiService {
       body: JSON.stringify({ winnerId, score1, score2 }),
     }).then(mapTournament);
 
-  // A degraded/down backend answers with a non-2xx status on purpose (so
-  // infra monitoring notices) — but that body is still exactly what this
-  // status page wants to show, so read it regardless of res.ok.
   public async getHealth(): Promise<{
     status: string;
     timestamp: string;
@@ -357,9 +324,6 @@ class ApiService {
     return res.json();
   }
 
-  // Whether "Se connecter avec 42" can actually work (FORTYTWO_CLIENT_ID/SECRET
-  // configured server-side) — lets the UI disable the button instead of
-  // bouncing the user through a redirect that 503s.
   public async getFortyTwoStatus(): Promise<{ configured: boolean }> {
     try {
       const res = await fetch(`${API_BASE_URL}/auth/42/status`);

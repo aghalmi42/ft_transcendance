@@ -54,7 +54,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         { id: 'profile', label: 'Profil Joueur', icon: '👤' },
         { id: 'history', label: 'Historique des Matchs', icon: '📊' },
         { id: 'controls', label: 'Paramètres Touches (ZQSD)', icon: '🎮' },
-        { id: 'settings', label: 'Sécurité 2FA & Compte', icon: '⚙️' },
+        { id: 'settings', label: 'Sécurité & Compte', icon: '⚙️' },
       ],
     },
     ...(user?.role === 'admin'

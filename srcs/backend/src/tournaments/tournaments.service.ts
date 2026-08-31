@@ -57,9 +57,6 @@ export class TournamentsService {
       order: { round: 'ASC', matchNumber: 'ASC' },
     });
 
-    // Object.assign (not a spread) so the returned value stays a real
-    // Tournament instance — nested User relations further down keep getting
-    // their @Exclude()d fields (email, passwordHash) stripped on the way out.
     return Object.assign(tournament, { participants, matches });
   }
 
@@ -156,8 +153,6 @@ export class TournamentsService {
     return copy;
   }
 
-  // Matchmaking: once registration fills up, shuffle participants into seeds
-  // and generate the round-1 bracket.
   private async generateBracket(tournament: Tournament): Promise<void> {
     const participants = await this.participantsRepository.find({
       where: { tournament: { id: tournament.id } },
@@ -192,8 +187,6 @@ export class TournamentsService {
     }
   }
 
-  // After a match completes, either pair up next round's winners or, if that
-  // was the final, crown the champion.
   private async tryAdvanceRound(tournament: Tournament, completedMatch: TournamentMatch): Promise<void> {
     const roundMatches = await this.matchesRepository.find({
       where: { tournament: { id: tournament.id }, round: completedMatch.round },

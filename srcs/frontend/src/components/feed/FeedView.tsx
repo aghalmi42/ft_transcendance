@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { api } from '../../services/api';
 import { soundEffects } from '../../services/audio';
-import { MOCK_POSTS } from '../../services/mockData';
 import { PostCard } from './PostCard';
 import { Avatar } from '../common/Avatar';
 import { Button } from '../common/Button';
@@ -28,9 +27,9 @@ export const FeedView: React.FC<FeedViewProps> = ({ onNavigate }) => {
     try {
       setLoading(true);
       const data = await api.getPosts();
-      setPosts(data && data.length > 0 ? data : (MOCK_POSTS as any));
+      setPosts(Array.isArray(data) ? data : []);
     } catch {
-      setPosts(MOCK_POSTS as any);
+      setPosts([]);
     } finally {
       setLoading(false);
     }

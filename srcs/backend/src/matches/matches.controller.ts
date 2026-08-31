@@ -16,8 +16,6 @@ export class MatchesController {
     return this.matchesService.getHistory(userId);
   }
 
-  // Public (any authenticated user) match history for a given player, e.g. to
-  // show on their profile — same shape as "my own" history above.
   @Get('history/:userId')
   getHistoryForUser(@Param('userId') userId: string) {
     return this.matchesService.getHistory(userId);

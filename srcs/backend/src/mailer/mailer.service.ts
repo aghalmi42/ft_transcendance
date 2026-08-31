@@ -25,8 +25,6 @@ export class MailerService {
       : null;
   }
 
-  // Best-effort: a failed/unconfigured email must never block the real
-  // operation (account deletion, data export) that triggered it.
   private async send(to: string, subject: string, text: string): Promise<boolean> {
     if (!this.transporter) {
       this.logger.warn(`SMTP not configured — would have sent "${subject}" to ${to}`);

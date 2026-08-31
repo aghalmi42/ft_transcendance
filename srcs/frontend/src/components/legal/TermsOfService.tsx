@@ -45,7 +45,6 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onNavigate }) =>
           </p>
           <ul className="list-disc list-inside space-y-1 text-slate-400 pl-2">
             <li>{"L'utilisateur est seul responsable de la confidentialité de ses identifiants et de son mot de passe."}</li>
-            <li>{"L'activation de l'authentification à deux facteurs (2FA) est vivement recommandée pour sécuriser l'accès au compte."}</li>
             <li>{"Tout accès frauduleux ou tentative d'usurpation d'identité entraînera la suspension immédiate du compte."}</li>
           </ul>
         </section>

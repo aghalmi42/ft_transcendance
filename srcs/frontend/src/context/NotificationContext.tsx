@@ -17,32 +17,7 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastProps[]>([]);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 'n1',
-      title: 'Demande d\'ami reçue',
-      message: 'PixelKnight vous a envoyé une demande d\'ami.',
-      type: 'FRIEND_REQUEST',
-      read: false,
-      timestamp: 'Il y a 5 min',
-    },
-    {
-      id: 'n2',
-      title: 'Défi Pong',
-      message: 'NeonValkyrie vous a défié en match 1v1 !',
-      type: 'GAME_INVITE',
-      read: false,
-      timestamp: 'Il y a 20 min',
-    },
-    {
-      id: 'n3',
-      title: 'Succès Débloqué !',
-      message: 'Vous avez débloqué le badge "Première Victoire".',
-      type: 'SYSTEM',
-      read: true,
-      timestamp: 'Hier',
-    }
-  ]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   const addToast = (message: string, type: ToastProps['type'] = 'info', title?: string) => {
     const id = 'toast-' + Date.now() + Math.random().toString(36).substring(2, 5);

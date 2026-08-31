@@ -14,7 +14,12 @@ import { api } from '../../services/api';
 import { socketService } from '../../services/socket';
 import { soundEffects } from '../../services/audio';
 
-export const FriendsList: React.FC<{ onNavigate: (tabId: string) => void }> = ({ onNavigate }) => {
+interface FriendsListProps {
+  onNavigate: (tabId: string) => void;
+  onStartDuel?: (roomId?: string, opponentName?: string, gameType?: string, role?: 'host' | 'guest') => void;
+}
+
+export const FriendsList: React.FC<FriendsListProps> = ({ onNavigate, onStartDuel }) => {
   const { user } = useAuth();
   const { setActiveFriendId, sendGameChallenge, blockedUserIds, toggleBlockUser } = useChat();
   const { addToast } = useNotification();
@@ -83,15 +88,21 @@ export const FriendsList: React.FC<{ onNavigate: (tabId: string) => void }> = ({
     }
   };
 
-  const handleSendChallenge = (
+  const handleSendChallenge = async (
     gameType: ChallengeGameType,
     options?: { targetScore?: number; powerUps?: boolean }
   ) => {
     if (!selectedChallengeUser) return;
-    sendGameChallenge(selectedChallengeUser.id, gameType, options);
+    const opponent = selectedChallengeUser;
+    const roomId = await sendGameChallenge(opponent.id, gameType, options);
     soundEffects.playPowerUp();
-    addToast(`Défi ${gameType} envoyé à @${selectedChallengeUser.username} !`, 'success');
-    onNavigate('chat');
+
+    if (roomId && onStartDuel) {
+      onStartDuel(roomId, opponent.username, gameType, 'host');
+    } else {
+      addToast(`Défi ${gameType} envoyé à @${opponent.username} !`, 'success');
+      onNavigate('chat');
+    }
   };
 
   const otherUsers = allUsers.filter(u => user && u.id !== user.id && !blockedUserIds.includes(u.id));

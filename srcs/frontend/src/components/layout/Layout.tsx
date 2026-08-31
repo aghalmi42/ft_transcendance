@@ -11,7 +11,7 @@ interface LayoutProps {
   onNavigate: (tabId: string) => void;
   children: React.ReactNode;
   onSearchQuery?: (query: string) => void;
-  onStartDuel?: (roomId?: string, opponentName?: string) => void;
+  onStartDuel?: (roomId?: string, opponentName?: string, gameType?: string) => void;
 }
 
 export const Layout: React.FC<LayoutProps> = ({
@@ -87,7 +87,7 @@ export const Layout: React.FC<LayoutProps> = ({
           gameType={activeInvite.gameType}
           onAccept={() => {
             if (onStartDuel) {
-              onStartDuel(activeInvite.roomId, activeInvite.senderName);
+              onStartDuel(activeInvite.roomId, activeInvite.senderName, activeInvite.gameType);
             } else {
               onNavigate('game');
             }

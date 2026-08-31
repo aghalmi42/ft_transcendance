@@ -99,9 +99,6 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
     }
   };
 
-  // The backend stores only { type, actor, entityId } — it does not persist a
-  // title/message. Derive readable copy here so every notification type renders
-  // properly (mock data that already carries title/message is left untouched).
   const describeNotif = (notif: NotificationItem): { title: string; message: string } => {
     if (notif.title || notif.message) {
       return { title: notif.title || '', message: notif.message || '' };

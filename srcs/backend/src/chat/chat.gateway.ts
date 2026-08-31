@@ -1,6 +1,9 @@
 import {
+  ConnectedSocket,
+  MessageBody,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
@@ -10,9 +13,6 @@ import { Server, Socket } from 'socket.io';
 import { UsersService } from '../users/users.service';
 import { UserStatus } from '../common/enums/user-status.enum';
 
-// Presence only: connecting/disconnecting on this namespace marks a user
-// online/offline and broadcasts it, so friends can see live status.
-// (Real-time chat messaging itself still goes through the REST /conversations API.)
 @WebSocketGateway({
   namespace: '/chat',
   cors: { origin: true, credentials: true },
@@ -21,7 +21,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   private server!: Server;
 
-  // Tracks how many open sockets (tabs) each user currently has.
   private readonly connectionsByUser = new Map<string, number>();
 
   constructor(
@@ -43,6 +42,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     client.data.userId = userId;
+    await client.join(userId);
+
     const count = (this.connectionsByUser.get(userId) || 0) + 1;
     this.connectionsByUser.set(userId, count);
 
@@ -50,6 +51,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       await this.usersService.setStatus(userId, UserStatus.ONLINE);
       this.server.emit('presenceUpdate', { userId, status: 'ONLINE' });
     }
+  }
+
+  emitToUser(userId: string, event: string, payload: unknown): void {
+    this.server.to(userId).emit(event, payload);
+  }
+
+  @SubscribeMessage('sendGameChallenge')
+  async handleGameChallenge(
+    @ConnectedSocket() client: Socket,
+    @MessageBody()
+    body: { receiverId: string; gameType: string; roomId?: string; targetScore?: number },
+  ): Promise<void> {
+    const senderId = client.data.userId as string | undefined;
+    if (!senderId || !body?.receiverId) return;
+
+    const sender = await this.usersService.findOneById(senderId);
+    this.emitToUser(body.receiverId, 'incomingGameChallenge', {
+      sender: sender ? { id: sender.id, username: sender.username, avatar: sender.avatar } : { id: senderId },
+      gameType: body.gameType,
+      roomId: body.roomId,
+      targetScore: body.targetScore,
+    });
   }
 
   async handleDisconnect(client: Socket): Promise<void> {

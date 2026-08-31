@@ -9,9 +9,6 @@ import { ApiKeyGuard } from '../api-keys/guards/api-key.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
 
-// The public developer-facing API: authenticated by X-API-Key (see
-// POST /api-keys to mint one), independent from the app's own JWT session
-// auth. Kept on its own resource (posts) and its own, tighter rate limit.
 @Controller('api/v1/posts')
 @ApiTags('Public API')
 @ApiSecurity('apiKey')

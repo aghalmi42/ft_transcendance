@@ -60,7 +60,6 @@ export const GameCatalog: React.FC<GameCatalogProps> = ({ onSelectGame, searchQu
         </div>
       </div>
 
-      {/* Category Filter Chips */}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-4">
         {[
           { key: 'ALL', label: `✨ Tous les Titres (${GAMES_CATALOG.length})` },
@@ -82,7 +81,6 @@ export const GameCatalog: React.FC<GameCatalogProps> = ({ onSelectGame, searchQu
         ))}
       </div>
 
-      {/* Grid of Games */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-300 font-mono tracking-wider uppercase flex items-center gap-2">

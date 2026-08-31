@@ -37,7 +37,6 @@ const AVATAR_UPLOAD_DIR = join(process.cwd(), 'uploads', 'avatars');
 const ALLOWED_AVATAR_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024;
 
-// Strips fields that must never leave the API even for the account owner.
 function toSafeUser(user: User) {
   const { passwordHash, ...safe } = user;
   return safe;

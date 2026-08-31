@@ -21,7 +21,7 @@ export const ChatQuickDrawer: React.FC<ChatQuickDrawerProps> = ({
   onChallengePlayer,
 }) => {
   const { user } = useAuth();
-  const { sendMessage, messages: chatMessages, sendGameChallenge } = useChat();
+  const { sendMessage, messages: chatMessages, sendGameChallenge, setActiveFriendId } = useChat();
   const drawerRef = useRef<HTMLDivElement>(null);
 
   const [realUsers, setRealUsers] = useState<User[]>([]);
@@ -38,6 +38,7 @@ export const ChatQuickDrawer: React.FC<ChatQuickDrawerProps> = ({
             setRealUsers(others);
             if (others.length > 0 && !activeUserId) {
               setActiveUserId(others[0].id);
+              setActiveFriendId(others[0].id);
             }
           }
         })
@@ -86,7 +87,7 @@ export const ChatQuickDrawer: React.FC<ChatQuickDrawerProps> = ({
   return (
     <div
       ref={drawerRef}
-      className="absolute right-0 mt-3 w-80 sm:w-[480px] bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl z-50 overflow-hidden animate-fadeIn text-left flex flex-col h-[520px]"
+      className="fixed top-20 left-1/2 -translate-x-1/2 sm:left-auto sm:right-6 sm:translate-x-0 w-[92vw] max-w-[480px] bg-slate-900 border border-slate-700/80 rounded-3xl shadow-[0_25px_60px_rgba(15,23,42,0.75)] z-[60] overflow-hidden animate-fadeIn text-left flex flex-col h-[520px]"
     >
       {}
       <div className="flex items-center justify-between px-4 py-3 bg-slate-950 border-b border-slate-800">
@@ -129,6 +130,7 @@ export const ChatQuickDrawer: React.FC<ChatQuickDrawerProps> = ({
                   key={u.id}
                   onClick={() => {
                     setActiveUserId(u.id);
+                    setActiveFriendId(u.id);
                     audioService.playClick();
                   }}
                   className={`p-2.5 flex flex-col items-center sm:items-start transition-colors cursor-pointer ${

@@ -48,15 +48,15 @@ export const PublicUserProfileModal: React.FC<PublicUserProfileModalProps> = ({
     soundEffects.playClick();
   };
 
-  const handleChallengeGame = (gameType: string) => {
+  const handleChallengeGame = (gameType: 'PONG' | 'TICTACTOE') => {
     soundEffects.playPowerUp();
     onClose();
     if (onStartDuel) {
       onStartDuel(`duel-${user.id}-${Date.now()}`, user.username);
     } else if (onNavigate) {
-      onNavigate(gameType);
+      onNavigate(gameType.toLowerCase());
     }
-    sendGameChallenge(user.id, gameType.toUpperCase());
+    sendGameChallenge(user.id, gameType);
     addToast(`Invitation de défi envoyée à ${user.username} !`, 'info');
   };
 
@@ -120,26 +120,19 @@ export const PublicUserProfileModal: React.FC<PublicUserProfileModalProps> = ({
 
         {}
         {!isSelf && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-2">
             <button
-              onClick={() => handleChallengeGame('pong')}
+              onClick={() => handleChallengeGame('PONG')}
               className="py-2.5 px-3 rounded-xl bg-indigo-950/80 hover:bg-indigo-900 border border-indigo-500/40 text-indigo-300 font-mono text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
             >
               <span>🏓 Duel Pong</span>
             </button>
 
             <button
-              onClick={() => handleChallengeGame('shootactoe')}
+              onClick={() => handleChallengeGame('TICTACTOE')}
               className="py-2.5 px-3 rounded-xl bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 font-mono text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
             >
-              <span>🚀 ShooTacToe</span>
-            </button>
-
-            <button
-              onClick={() => handleChallengeGame('snakeouttheflag')}
-              className="py-2.5 px-3 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/40 text-emerald-300 font-mono text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-            >
-              <span>🐍 Snake CTF</span>
+              <span>⭕ Morpion</span>
             </button>
 
             <button

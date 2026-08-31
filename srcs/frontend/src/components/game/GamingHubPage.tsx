@@ -9,6 +9,7 @@ interface GamingHubPageProps {
   initialGame?: string;
   initialDuelRoomId?: string;
   initialOpponentName?: string;
+  initialDuelRole?: 'host' | 'guest';
 }
 
 export const GamingHubPage: React.FC<GamingHubPageProps> = ({
@@ -16,6 +17,7 @@ export const GamingHubPage: React.FC<GamingHubPageProps> = ({
   initialGame = 'pong',
   initialDuelRoomId,
   initialOpponentName,
+  initialDuelRole = 'guest',
 }) => {
   return (
     <div className="space-y-6 w-full max-w-[1550px] mx-auto animate-fadeIn text-left relative">
@@ -26,7 +28,10 @@ export const GamingHubPage: React.FC<GamingHubPageProps> = ({
       ) : (initialGame === 'hungrygoal' || initialGame === 'hungry-goal' || initialGame === 'reverse-hockey') ? (
         <PongGame initialMatchSize="PACMAN_GOAL" />
       ) : (initialGame === 'tictactoe' || initialGame === 'tic-tac-toe') ? (
-        <TicTacToeLobby />
+        <TicTacToeLobby
+          autoJoinGameId={initialDuelRole === 'guest' ? initialDuelRoomId : undefined}
+          autoResumeGameId={initialDuelRole === 'host' ? initialDuelRoomId : undefined}
+        />
       ) : (
         <PongGame
           initialDuelRoomId={initialDuelRoomId}

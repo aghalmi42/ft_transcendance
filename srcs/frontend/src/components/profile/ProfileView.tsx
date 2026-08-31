@@ -25,9 +25,6 @@ export const ProfileView: React.FC<ProfileViewProps> = ({ onNavigate }) => {
   const [customAvatar, setCustomAvatar] = useState(user?.avatar || '');
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
-  // Keep the pending "Enregistrer" avatar value in sync with a just-uploaded
-  // photo, otherwise saving a bio edit right after an upload would silently
-  // revert the avatar to whatever it was when the form was first opened.
   useEffect(() => {
     setCustomAvatar(user?.avatar || '');
   }, [user?.avatar]);

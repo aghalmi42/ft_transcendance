@@ -3,7 +3,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { Button } from '../common/Button';
 import { Input } from '../common/Input';
-import { API_BASE_URL, api } from '../../services/api';
 
 interface LandingPageProps {
   onLoginSuccess: () => void;
@@ -22,7 +21,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess, onNavi
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [fortyTwoAvailable, setFortyTwoAvailable] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (oauthError) {
@@ -30,15 +28,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess, onNavi
       clearOauthError();
     }
   }, [oauthError, addToast, clearOauthError]);
-
-  useEffect(() => {
-    api.getFortyTwoStatus().then(({ configured }) => setFortyTwoAvailable(configured));
-  }, []);
-
-  const handleFortyTwoLogin = () => {
-    if (!fortyTwoAvailable) return;
-    window.location.href = `${API_BASE_URL}/auth/42`;
-  };
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,25 +123,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLoginSuccess, onNavi
             </Button>
           </form>
         )}
-
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 text-[10px] text-slate-600 uppercase font-mono">
-            <span className="flex-1 h-px bg-slate-800" />
-            ou
-            <span className="flex-1 h-px bg-slate-800" />
-          </div>
-          <Button
-            type="button"
-            variant="secondary"
-            size="lg"
-            className="w-full"
-            onClick={handleFortyTwoLogin}
-            disabled={!fortyTwoAvailable}
-            title={fortyTwoAvailable === false ? "Non configuré côté serveur pour l'instant" : undefined}
-          >
-            {fortyTwoAvailable === false ? 'Connexion 42 non disponible' : 'Se connecter avec 42'}
-          </Button>
-        </div>
 
         {onNavigateLegal && (
           <div className="flex justify-center gap-4 text-[11px] text-slate-500 border-t border-slate-800 pt-4">

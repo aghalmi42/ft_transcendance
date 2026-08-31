@@ -46,8 +46,6 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    // The very first account on a fresh instance becomes the administrator —
-    // there is no seeded/default admin, so someone has to be able to manage roles.
     const isFirstUser = (await this.usersRepository.count()) === 0;
 
     const passwordHash = await bcrypt.hash(createUserDto.password, 10);
@@ -100,13 +98,11 @@ export class UsersService {
     return candidate;
   }
 
-  // Self-service update: never touches email, role, or stats.
   async updateProfile(id: string, dto: UpdateProfileDto): Promise<User | null> {
     await this.usersRepository.update(id, dto);
     return this.findOneById(id);
   }
 
-  // Admin update: also allows email and role changes.
   async adminUpdate(id: string, dto: AdminUpdateUserDto): Promise<User | null> {
     await this.usersRepository.update(id, dto);
     return this.findOneById(id);
@@ -138,7 +134,6 @@ export class UsersService {
     await this.usersRepository.update(id, { passwordHash });
   }
 
-  // Server-authoritative match result recording — never client-writable via PATCH.
   async recordMatchResult(userId: string, outcome: 'WIN' | 'LOSS' | 'DRAW', newElo: number): Promise<void> {
     const user = await this.findOneById(userId);
     if (!user) return;

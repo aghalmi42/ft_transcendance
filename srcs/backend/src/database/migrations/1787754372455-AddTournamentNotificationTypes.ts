@@ -10,8 +10,5 @@ export class AddTournamentNotificationTypes1787754372455 implements MigrationInt
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        // Postgres cannot remove a single enum value without recreating the
-        // type (destructive to any existing rows using it) — intentionally a
-        // no-op down migration, same as the earlier "away" status addition.
     }
 }

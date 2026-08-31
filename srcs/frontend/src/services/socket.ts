@@ -186,9 +186,6 @@ class SocketManager {
     });
   }
 
-  // The backend's TicTacToe gateway lives on its own '/games' namespace and
-  // only emits 'game:state' — it is unrelated to the Pong '/game' duel socket
-  // above, so it gets its own connection instead of being merged into connectGame().
   public connectTicTacToe(token: string) {
     if (this.ticTacToeSocket) return;
 

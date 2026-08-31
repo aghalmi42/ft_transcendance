@@ -16,8 +16,7 @@ that reaches the backend from a browser goes through an HTTPS reverse proxy.
 
 ### Key features
 
-- Email / password authentication (bcrypt-hashed) with JWT sessions, plus
-  optional **42 OAuth 2.0** sign-in.
+- Email / password authentication (bcrypt-hashed) with JWT sessions.
 - Real-time **Tic-Tac-Toe** with a server-side rules engine, live game state
   broadcast over WebSockets, graceful opponent-disconnect handling, ELO update
   and persisted match results.
@@ -45,9 +44,9 @@ that reaches the backend from a browser goes through an HTTPS reverse proxy.
 | Member | 42 login | Role(s) | Responsibilities |
 |---|---|---|---|
 | Alex Moderan | `amoderan` | **Technical Lead / Architect** · Backend Developer | Overall backend architecture, database schema and relations, technology-stack decisions, authentication foundation, WebSocket layer, tournaments / matches / API-keys / public-API / mailer / GDPR / health modules, code review of critical changes. |
-| Amir Ghalmi | `aghalmi` | **Project Manager / Scrum Master** · Backend Developer | Repository ownership, branching strategy, pull-request review and merge coordination, milestone and deadline tracking. Backend: posts, comments, likes, notifications, private chat, global search. |
-| Sana Madani | `smadani` | **Product Owner** · **Lead Frontend Developer** | Product vision, feature prioritisation and UX decisions. Owns the entire frontend: design system and reusable UI kit, routing and context architecture, authentication screens, social feed / chat / notifications UI, legal pages, the arcade game front-ends, and the Tic-Tac-Toe experience (lobby, arena, board, game-sharing flow, gaming-hub integration). |
-| Moaad Hammouda | `mhammoud` | Developer (Backend) | Tic-Tac-Toe game engine: the rules class (win / draw detection, turn validation, move legality) and the initial games module wiring. |
+| Amir Ghalmi | `aghalmi` | **Project Manager / Scrum Master** · Backend & Frontend Developer | Repository ownership, branching strategy, pull-request review and merge coordination, milestone and deadline tracking. Owns the social vertical end-to-end: backend (posts, comments, likes, notifications, private chat, global search) **and** its frontend (feed, chat UI, notification centre). |
+| Sana Madani | `smadani` | **Product Owner** · **Lead Frontend Developer** | Product vision, feature prioritisation and UX decisions. Owns the app shell and design system: reusable UI kit, routing and context architecture, authentication screens, legal pages, profile / leaderboard / admin UI, and the Tic-Tac-Toe lobby & arena UI (gaming-hub integration, game-sharing flow). |
+| Moaad Hammouda | `mhammoud` | Developer (Backend & Frontend) | Tic-Tac-Toe game engine: the rules class (win / draw detection, turn validation, move legality), the initial games module wiring, **and** its frontend board component — plus the arcade prototype front-ends. |
 
 > With a four-person team, members hold multiple roles: dedicated PO, PM and Tech
 > Lead responsibilities are covered, and every member also contributes as a
@@ -96,7 +95,7 @@ that reaches the backend from a browser goes through an HTTPS reverse proxy.
 | Framework | **NestJS 11** (modular architecture, dependency injection, guards, pipes) |
 | Language | **TypeScript** |
 | ORM | **TypeORM 0.3** with explicit SQL migrations (no `synchronize` in any environment) |
-| Auth | `@nestjs/jwt` + `passport-jwt`; passwords hashed with **bcrypt**; 42 OAuth via the intra OAuth 2.0 authorization-code flow |
+| Auth | `@nestjs/jwt` + `passport-jwt`; passwords hashed with **bcrypt**; a 42 intra OAuth 2.0 authorization-code flow was built but is no longer exposed in the UI (see Known Limitations) |
 | Real-time | `@nestjs/websockets` + `socket.io` (namespaced gateways: `/games`, `/chat`) |
 | Validation | `class-validator` / `class-transformer` through a global `ValidationPipe` (`whitelist`, `forbidNonWhitelisted`, `transform`) |
 | Rate limiting | `@nestjs/throttler` (global limit + a tighter limit on the public API) |
@@ -165,7 +164,6 @@ Then edit `srcs/.env`:
 | `JWT_EXPIRES_IN` | yes | e.g. `1h` |
 | `VITE_API_URL` | yes | leave as `https://localhost:8443` for a local run |
 | `FRONTEND_URL` | yes | `http://localhost:5173` |
-| `FORTYTWO_CLIENT_ID` / `FORTYTWO_CLIENT_SECRET` / `FORTYTWO_CALLBACK_URL` | optional | fill in to enable "Sign in with 42" (register an app at <https://profile.intra.42.fr/oauth/applications>) |
 | `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | optional | fill in to actually send GDPR confirmation emails; if unset the action still happens and the email is logged |
 
 ### 2. Build and start
@@ -374,8 +372,6 @@ erDiagram
 - Register / login with email + password; bcrypt-hashed passwords; JWT issued on
   success. Register and login forms are validated on the client and re-validated
   server-side by DTOs.
-- **42 OAuth 2.0**: authorize-URL build with a signed short-lived `state`, code
-  exchange, `/v2/me` fetch, find-or-create local user.
 - Persistent session in `AuthContext`; automatic profile refresh; logout.
 
 ### User management — *amoderan (API), smadani (UI)*
@@ -383,13 +379,24 @@ erDiagram
   default avatar when none set).
 - Live **online / offline** status, driven by WebSocket connect / disconnect.
 - Public profile pages; leaderboard; match-history page.
-- **Admin area** (role `admin`): list users, edit a user, delete a user,
-  guarded by a `RolesGuard`.
+- **Admin area** (role `admin`): list users, edit a user, delete a user. Editing
+  another user (`PATCH /users/:id`) is guarded by `RolesGuard` + `@Roles(admin)`.
+  Listing (`GET /users`) is intentionally open to any authenticated account —
+  it doubles as the general user directory used by friend search and the chat
+  contact list. Deletion allows the account owner *or* an admin (a manual
+  self-or-admin check, not `RolesGuard`, since a blanket admin-only guard would
+  block users from deleting their own account for GDPR purposes).
 
-### Real-time Tic-Tac-Toe — *mhammoud (engine), amoderan (gateway), smadani (UI)*
+### Real-time Tic-Tac-Toe — *mhammoud (engine + board UI), amoderan (gateway), smadani (lobby & arena UI)*
 - Server-authoritative rules engine: turn validation, move legality, win / draw
   detection — the client can never force an illegal state.
 - Create a game against a chosen opponent, share the game ID, opponent joins.
+- **Live duel invites**: challenging a friend — from the friends list or from
+  the Tic-Tac-Toe lobby's own "Défier un ami" list — creates the real backend
+  game and pushes a real-time popup to the friend over the `/chat` gateway,
+  wherever they are in the app; accepting drops both players straight into
+  that same game (no manual game-ID sharing needed, though it still works as a
+  fallback for an offline friend).
 - Live state broadcast to both players over the `/games` WebSocket namespace;
   `game:opponentDisconnected` event when a player drops, without tearing down the
   (resumable) game.
@@ -406,7 +413,7 @@ erDiagram
   or crowns the champion if it was the final.
 - Notifications fired at every step (match ready, eliminated, tournament won).
 
-### Social layer — *aghalmi (API), smadani (UI)*
+### Social layer — *aghalmi (API + UI)*
 - **Feed**: create / edit / soft-delete posts; comments; likes on posts and
   comments.
 - **Private chat**: 1-to-1 conversations persisted in `conversations` /
@@ -415,7 +422,7 @@ erDiagram
   supported in the schema.
 - **Global search** across users and posts.
 
-### Notifications — *aghalmi*
+### Notifications — *aghalmi (API + UI)*
 - Ten event types spanning **creation, update and deletion**: friend request /
   accepted / removed, post liked / commented, comment liked, new message,
   tournament match ready / eliminated / won.
@@ -441,12 +448,14 @@ erDiagram
 - Confirmation email sent for both actions (via `nodemailer`; logged if SMTP is
   not configured).
 
-### Design system & extra games — *smadani*
+### Design system — *smadani*
 - 13 reusable UI components (Button, Input, Modal, Card, Table, Tabs, Toast,
   Avatar, Badge, Dropdown, ProgressBar, Tooltip, MiniMediaPlayer), a shared
   colour palette, the Inter type scale, and an SVG icon set.
-- Self-contained canvas arcade prototypes sharing that system: Pong RPG,
-  ShooTacToe, Snake CTF (single-player / local).
+
+### Extra arcade games — *mhammoud*
+- Self-contained canvas arcade prototypes on top of that design system: Pong
+  RPG, ShooTacToe, Snake CTF (single-player / local).
 
 ---
 
@@ -479,7 +488,9 @@ erDiagram
 2. **Real-time features — 2 pts.** Two Socket.IO gateways. `/games` broadcasts
    Tic-Tac-Toe state to a room on every move and emits a dedicated event when a
    player disconnects, keeping the game resumable. `/chat` maintains live
-   presence and broadcasts `presenceUpdate` to everyone. Connection and
+   presence (`presenceUpdate`), delivers persisted messages to the recipient's
+   socket room in real time, and relays live duel-invite popups
+   (`sendGameChallenge` → `incomingGameChallenge`). Connection and
    disconnection are handled explicitly on both.
 
 3. **User-to-user interaction — 2 pts.** Send / receive private messages
@@ -526,8 +537,6 @@ erDiagram
 
 ### Partially implemented (not claimed for points)
 
-- **42 OAuth 2.0** (Minor) — the full authorization-code flow is implemented;
-  it is only enabled when `FORTYTWO_*` credentials are configured.
 - **Advanced permissions** (Major) — a four-value role enum and a `RolesGuard`
   exist; only the `admin` role is currently enforced end-to-end.
 
@@ -545,21 +554,22 @@ backend PR.
 by putting the rules in a plain class the gateway drives, and broadcasting the
 resulting state to a Socket.IO room rather than trusting any client input.
 
-### Amir Ghalmi — `aghalmi` (Project Manager / Scrum Master, Backend)
+### Amir Ghalmi — `aghalmi` (Project Manager / Scrum Master, Backend & Frontend)
 Owned the repository, the branching strategy and the PR/merge process, and kept
-the backlog and deadlines. Built the social backend: posts (with soft delete),
-comments, likes, the private chat persistence, the notification service and
-global search.
+the backlog and deadlines. Owned the social vertical end-to-end: backend (posts
+with soft delete, comments, likes, private chat persistence, the notification
+service, global search) **and** its frontend (the feed, the chat UI, the
+notification centre).
 *Challenge:* integrating several late feature branches that had drifted from
 `main` — solved with dedicated `merge/*` integration branches and a build + lint
 gate before each merge.
 
 ### Sana Madani — `smadani` (Product Owner, Lead Frontend)
-Set the product direction and feature priorities, and built the entire frontend:
-the design system and reusable UI kit, the routing and context architecture, the
-authentication screens, the social feed / chat / notifications UI, the legal
-pages, and the arcade game front-ends — plus the Tic-Tac-Toe experience (lobby,
-arena, board, game-sharing flow, gaming-hub integration).
+Set the product direction and feature priorities, and built the app shell and
+design system: the reusable UI kit, the routing and context architecture, the
+authentication screens, the legal pages, and the profile / leaderboard / admin
+UI — plus the Tic-Tac-Toe lobby and arena UI (gaming-hub integration,
+game-sharing flow).
 *Challenges:* (1) one large frontend that had to stay usable while parts of the
 backend were still in progress — solved with a typed API client that falls back
 to representative local data per endpoint, so every screen is demonstrable.
@@ -567,10 +577,12 @@ to representative local data per endpoint, so every screen is demonstrable.
 winning move — solved by keeping a finished game readable on the server for a
 short grace period instead of deleting it immediately.
 
-### Moaad Hammouda — `mhammoud` (Developer, Backend)
+### Moaad Hammouda — `mhammoud` (Developer, Backend & Frontend)
 Implemented the Tic-Tac-Toe engine: the board model, turn and move-legality
 validation, and win / draw detection, plus the initial games-module wiring that
-the WebSocket gateway and the stats pipeline build on.
+the WebSocket gateway and the stats pipeline build on. Also built its frontend
+board component, and the arcade prototype front-ends (Pong RPG, ShooTacToe,
+Snake CTF) on top of the shared design system.
 *Challenge:* making the engine impossible to misuse from outside — solved by
 exposing only intent methods (`join`, `makeMove`) that throw on any illegal
 transition, with all state private.
@@ -584,8 +596,13 @@ transition, with all state private.
   online / multiplayer modes are not backed by a server and are not presented as
   modules.
 - The cosmetics shop / inventory screens are a UI prototype with no persistence.
-- 42 OAuth and email delivery require external credentials (`FORTYTWO_*`,
-  `SMTP_*`) and are otherwise disabled gracefully.
+- **42 OAuth 2.0** was built (full authorization-code flow: signed `state`,
+  code exchange, `/v2/me` fetch, find-or-create user) but proved unreliable
+  in practice against the real intra API, so the "Sign in with 42" entry point
+  was removed from the UI — email/password is the only supported sign-in
+  method. Was never claimed for module points.
+- Email delivery requires external `SMTP_*` credentials and is otherwise
+  disabled gracefully (the action still happens, only the email is skipped).
 - Tailwind CSS is loaded via its CDN with an inline theme config rather than a
   compiled build.
 

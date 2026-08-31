@@ -9,8 +9,6 @@ interface MatchHistoryPageProps {
   onNavigate?: (tabId: string) => void;
 }
 
-// Real ELO derived rank label — same thresholds as PublicUserProfileModal's
-// getRankBadge, kept in sync so a player sees the same league everywhere.
 const getRankLabel = (rating: number): string => {
   if (rating >= 2000) return 'Grand Maître Cyber';
   if (rating >= 1700) return 'Maître Diamant';

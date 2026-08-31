@@ -115,7 +115,6 @@ export const SnakeOutTheFlagGame: React.FC<SnakeOutTheFlagProps> = ({ onNavigate
             </div>
           </div>
 
-          {/* Format Selector */}
           <div className="space-y-3">
             <h2 className="text-sm font-mono font-bold uppercase text-emerald-400">
               Choisissez la Taille de l'Escouade (Castle Wars) :

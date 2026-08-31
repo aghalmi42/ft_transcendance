@@ -4,7 +4,11 @@ import { useAuth } from './AuthContext';
 import { useNotification } from './NotificationContext';
 import { api } from '../services/api';
 
-import { DEFAULT_PONG_THEMES as PONG_THEMES } from '../services/mockData';
+const PONG_THEMES: PongTheme[] = [
+  { id: 'cyber-neon', name: 'Cyber Neon', bg: '#090d16', paddleColor: '#8b5cf6', ballColor: '#38bdf8', lineColor: '#1e293b', glowColor: 'rgba(56, 189, 248, 0.6)' },
+  { id: 'retro-arcade', name: 'Retro Arcade Vert', bg: '#051b11', paddleColor: '#10b981', ballColor: '#34d399', lineColor: '#064e3b', glowColor: 'rgba(52, 211, 153, 0.7)' },
+  { id: 'synthwave-sunset', name: 'Synthwave Sunset', bg: '#180728', paddleColor: '#ec4899', ballColor: '#f59e0b', lineColor: '#4c1d95', glowColor: 'rgba(236, 72, 153, 0.7)' },
+];
 export { PONG_THEMES };
 
 interface GameContextType {
@@ -34,9 +38,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [history, setHistory] = useState<GameMatchHistory[]>(api.getMatchHistorySync());
 
-  // Local matches (e.g. client-simulated Pong) are recorded live via recordMatch();
-  // this pulls the server-persisted history (currently real for TicTacToe) so it
-  // survives reloads and shows up across devices/sessions.
   useEffect(() => {
     if (!user) return;
     api.getMatchHistory().then((remote) => {
@@ -73,8 +74,6 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const newWins = isWin ? (user.wins || 0) + 1 : user.wins || 0;
       const newLosses = !isWin && matchData.result === 'DEFEAT' ? (user.losses || 0) + 1 : user.losses || 0;
 
-      // Pong isn't backend-integrated yet, so these fields are (correctly) rejected
-      // server-side — this stays a local-only stat preview until that lands.
       updateProfile({
         xp: newXp,
         level: newLevel,

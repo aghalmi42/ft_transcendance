@@ -15,7 +15,6 @@ export class ApiKeysService {
     private readonly apiKeysRepository: Repository<ApiKey>,
   ) {}
 
-  // The raw key is only ever returned once, at creation time.
   async create(owner: User, label: string): Promise<{ id: string; key: string; label: string }> {
     const key = `${KEY_PREFIX}${randomBytes(24).toString('hex')}`;
     const apiKey = this.apiKeysRepository.create({ owner, label: label || 'Clé API', key });

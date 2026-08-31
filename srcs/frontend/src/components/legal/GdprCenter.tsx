@@ -97,7 +97,7 @@ export const GdprCenter: React.FC<GdprCenterProps> = ({ onNavigate }) => {
               {"Vous pouvez récupérer l'ensemble de vos données dans un format JSON ouvert et structuré :"}
             </p>
             <ul className="list-disc list-inside space-y-1 text-slate-400 pl-1">
-              <li>{"Profil utilisateur & paramètres de sécurité (2FA)"}</li>
+              <li>{"Profil utilisateur & paramètres de sécurité"}</li>
               <li>{"Historique complet des matchs et statistiques de jeu"}</li>
               <li>{"Liste des amis, requêtes et statuts de blocage"}</li>
             </ul>

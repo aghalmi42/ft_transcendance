@@ -26,7 +26,6 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* Tech Stack Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="p-5 space-y-3 border-violet-500/30 bg-slate-900/80">
           <div className="text-2xl">🎨</div>
@@ -50,7 +49,7 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
           <div className="flex flex-wrap gap-1.5 pt-1">
             <Badge variant="info" size="sm">NestJS</Badge>
             <Badge variant="info" size="sm">Socket.io</Badge>
-            <Badge variant="info" size="sm">JWT & 2FA</Badge>
+            <Badge variant="info" size="sm">JWT</Badge>
 
           </div>
         </Card>
@@ -69,13 +68,12 @@ export const AboutView: React.FC<AboutViewProps> = ({ onNavigate }) => {
         </Card>
       </div>
 
-      {/* Credits & Standards */}
       <Card className="p-6 space-y-4">
         <h3 className="text-lg font-bold text-white flex items-center gap-2">
           <span>🏛️</span> Conformité & Normes École 42
         </h3>
         <p className="text-xs text-slate-300 leading-relaxed">
-          Cette application a été développée en conformité avec le cahier des charges officiel : authentification sécurisée 2FA (TOTP), protection contre les failles CSRF/XSS, base de données relationnelle persistante et gestion des salons de discussion avec modération avancée.
+          Cette application a été développée en conformité avec le cahier des charges officiel : authentification sécurisée par JWT, protection contre les failles CSRF/XSS, base de données relationnelle persistante et gestion des salons de discussion.
         </p>
 
         <div className="pt-2 flex flex-wrap gap-3">

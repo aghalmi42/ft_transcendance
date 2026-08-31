@@ -45,8 +45,6 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  // Lets the opponent know a player dropped mid-game instead of the room
-  // just going silent, without tearing down the (still-resumable) game state.
   handleDisconnect(client: Socket): void {
     const gameIds: Set<string> | undefined = client.data.gameIds;
     if (!gameIds || !client.data.userId) return;

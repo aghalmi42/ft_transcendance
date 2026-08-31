@@ -8,6 +8,7 @@ import { User } from '../users/entities/user.entity';
 import { SendMessageDto } from './dto/send-message.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationType } from '../common/enums/notification-type.enum';
+import { ChatGateway } from './chat.gateway';
 
 @Injectable()
 export class ChatService {
@@ -19,6 +20,7 @@ export class ChatService {
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
     private readonly notificationsService: NotificationsService,
+    private readonly chatGateway: ChatGateway,
   ) {}
 
   private orderUsers(u1: User, u2: User): { userA: User; userB: User } {
@@ -113,6 +115,15 @@ export class ChatService {
       actor: sender,
       type: NotificationType.MESSAGE,
       entityId: conversation.id,
+    });
+
+    this.chatGateway.emitToUser(recipient.id, 'directMessage', {
+      id: saved.id,
+      content: saved.content,
+      read: saved.read,
+      createdAt: saved.createdAt,
+      conversationId: conversation.id,
+      sender: { id: sender.id, username: sender.username, avatar: sender.avatar },
     });
 
     return saved;

@@ -126,7 +126,6 @@ export const SnakeCTFArena: React.FC<SnakeCTFArenaProps> = ({
         </div>
       )}
 
-      {/* Score and Time Header */}
       <div className="grid grid-cols-3 items-center bg-slate-950/90 border border-slate-800 p-4 rounded-2xl shadow-xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-cyan-950 border border-cyan-500/50 flex items-center justify-center text-xl shadow-md">

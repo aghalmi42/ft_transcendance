@@ -2,10 +2,6 @@ import { IsEmail, IsEnum, IsOptional, IsString, MaxLength } from 'class-validato
 import { UserStatus } from '../../common/enums/user-status.enum';
 import { UserRole } from '../../common/enums/user-role.enum';
 
-/**
- * Admin-only user edition: everything a self-service update allows, plus
- * email and role. Still no direct password/stat writes from the API.
- */
 export class AdminUpdateUserDto {
   @IsOptional()
   @IsString()

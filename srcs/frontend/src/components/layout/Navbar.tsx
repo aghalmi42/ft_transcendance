@@ -59,7 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const userMenuItems = [
     { id: 'profile', label: 'Mon Profil', onClick: () => onNavigate('profile') },
     { id: 'controls', label: 'Touches (ZQSD)', onClick: () => onNavigate('controls') },
-    { id: 'settings', label: 'Paramètres & 2FA', onClick: () => onNavigate('settings') },
+    { id: 'settings', label: 'Paramètres', onClick: () => onNavigate('settings') },
     { id: 'gdpr', label: 'Données RGPD', onClick: () => onNavigate('gdpr') },
     { id: 'logout', label: 'Déconnexion', onClick: () => { soundEffects.playClick(); logout(); }, variant: 'danger' as const },
   ];

@@ -18,8 +18,6 @@ export class ApiKeyGuard implements CanActivate {
       throw new UnauthorizedException('Clé API invalide ou révoquée.');
     }
 
-    // Downstream services expect the acting User on request.user (same
-    // contract as @CurrentUser() under JWT auth).
     request.user = owner;
     return true;
   }

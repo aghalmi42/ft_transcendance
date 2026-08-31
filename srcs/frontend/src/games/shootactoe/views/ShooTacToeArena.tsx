@@ -224,7 +224,6 @@ export const ShooTacToeArena: React.FC<ShooTacToeArenaProps> = ({
         </div>
       )}
 
-      {/* Score and Time Header */}
       <div className="grid grid-cols-3 items-center bg-slate-950/90 border border-slate-800 p-4 rounded-2xl shadow-xl">
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs font-mono font-bold">

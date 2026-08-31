@@ -54,7 +54,6 @@ export class GdprService {
       this.messagesRepository.find({ where: { sender: { id: userId } }, order: { createdAt: 'DESC' } }),
     ]);
 
-    // Best-effort notification — never blocks the export itself.
     this.mailerService.sendDataExportConfirmation(user.email, user.username).catch(() => {});
 
     return {

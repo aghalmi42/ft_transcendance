@@ -1,33 +1,60 @@
 import { useState } from "react";
-import { useEffect } from "react";
-import type { User } from "../../types";
+import { useEffect, useRef } from "react";
+import type { User, Friendship } from "../../types";
 import type { TicTacToeState } from "./types";
 import { createGame, getGame, joinGame } from "./api";
 import { api } from "../../services/api";
+import { socketService } from "../../services/socket";
+import { useAuth } from "../../context/AuthContext";
+import { useChat } from "../../context/ChatContext";
+import { useNotification } from "../../context/NotificationContext";
 import Button from "../../components/common/Button";
 import Input from "../../components/common/Input";
 import { TicTacToeArena } from "./TicTacToeArena";
 
-export function TicTacToeLobby() {
+interface TicTacToeLobbyProps {
+    autoJoinGameId?: string;
+    autoResumeGameId?: string;
+}
+
+export function TicTacToeLobby({ autoJoinGameId, autoResumeGameId }: TicTacToeLobbyProps) {
+    const { user } = useAuth();
+    const { sendMessage } = useChat();
+    const { addToast } = useNotification();
     const [friendsList, setFriendsList] = useState<User[]>([])
     const [joinInput, setJoinInput] = useState<string>("")
     const [gameState, setGameState] = useState<TicTacToeState | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [gameId, setGameId] = useState<string | null>(null)
+    const autoRanRef = useRef(false)
 
     useEffect(() => {
+        if (autoRanRef.current) return;
+        autoRanRef.current = true;
+        if (autoJoinGameId) {
+            handleJoin(autoJoinGameId);
+        } else if (autoResumeGameId) {
+            handleResume(autoResumeGameId);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoJoinGameId, autoResumeGameId]);
+
+    useEffect(() => {
+        if (!user) return;
         async function fetchFriends() {
             try {
-                // Le backend GET /friends renvoie des User[] (FriendsService.getFriendsList),
-                // même si le type partagé api.getFriends() annonce encore Friendship[].
-                const data = (await api.getFriends()) as unknown as User[];
-                setFriendsList(Array.isArray(data) ? data : []);
+                const data = await api.getFriends() as unknown as Friendship[];
+                const accepted = (Array.isArray(data) ? data : [])
+                    .filter((f) => f.status === 'ACCEPTED')
+                    .map((f) => (f.sender?.id === user!.id ? f.receiver : f.sender))
+                    .filter((u): u is User => !!u);
+                setFriendsList(accepted);
             } catch {
                 setFriendsList([]);
             }
         }
         fetchFriends();
-    }, []);
+    }, [user]);
 
     async function handleChallenge(friendId: string) {
         setError(null)
@@ -36,6 +63,14 @@ export function TicTacToeLobby() {
             setGameId(res.gameId)
             const game = await getGame(res.gameId)
             setGameState(game)
+
+            socketService.sendChat('sendGameChallenge', {
+                receiverId: friendId,
+                gameType: 'TICTACTOE',
+                roomId: res.gameId,
+            });
+            sendMessage(friendId, '🎯 Défi lancé pour une partie de TICTACTOE !');
+            addToast('Défi envoyé en direct à votre ami !', 'success');
         }
         catch (err) {
             if (err instanceof Error) {
@@ -45,11 +80,29 @@ export function TicTacToeLobby() {
                 setError("Une erreur inattendue est survenue")
         }
     }
-    async function handleJoin() {
+    async function handleJoin(idOverride?: string) {
+        const id = (idOverride ?? joinInput).trim()
         setError(null)
         try {
-            const res = await joinGame(joinInput.trim())
+            const res = await joinGame(id)
+            setGameId(id)
             setGameState(res)
+        }
+        catch (err) {
+            if (err instanceof Error) {
+                setError(err.message)
+            }
+            else
+                setError("Une erreur inattendue est survenue.")
+        }
+    }
+
+    async function handleResume(id: string) {
+        setError(null)
+        try {
+            const game = await getGame(id)
+            setGameId(id)
+            setGameState(game)
         }
         catch (err) {
             if (err instanceof Error) {

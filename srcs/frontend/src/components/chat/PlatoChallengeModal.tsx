@@ -4,7 +4,7 @@ import { Button } from '../common/Button';
 import { Avatar } from '../common/Avatar';
 import type { User } from '../../types';
 
-export type ChallengeGameType = 'PONG' | 'TICTACTOE' | 'SNAKE' | 'HUNGRY_GOAL' | 'QUIZ';
+export type ChallengeGameType = 'PONG' | 'TICTACTOE';
 
 interface PlatoChallengeModalProps {
   isOpen: boolean;
@@ -15,7 +15,7 @@ interface PlatoChallengeModalProps {
 }
 
 interface GameOption {
-  id: 'PONG' | 'TICTACTOE' | 'SNAKE' | 'HUNGRY_GOAL';
+  id: 'PONG' | 'TICTACTOE';
   title: string;
   subtitle: string;
   icon: string;
@@ -33,28 +33,12 @@ const AVAILABLE_GAMES: GameOption[] = [
     description: 'Duel de raquettes en temps réel à 60 FPS. Le premier à 5 points gagne.',
   },
   {
-    id: 'HUNGRY_GOAL',
-    title: 'Hungry Pacman Goal',
-    subtitle: 'Duel & Red Fury 1v1',
-    icon: '🟡⚽',
-    color: 'from-amber-500 to-yellow-600',
-    description: 'Marquez 3 buts avant que Pacman ne grandisse en mangeant les pièces et vous dévore !',
-  },
-  {
     id: 'TICTACTOE',
     title: 'Tic-Tac-Toe',
     subtitle: 'Morpion Réflexion',
     icon: '⭕',
     color: 'from-cyan-600 to-blue-600',
     description: 'Alignez 3 symboles avant votre adversaire dans un match rapide.',
-  },
-  {
-    id: 'SNAKE',
-    title: 'Snake Challenge',
-    subtitle: 'Course aux Points',
-    icon: '🐍',
-    color: 'from-emerald-600 to-teal-600',
-    description: 'Celui qui survit le plus longtemps et mange le plus de pommes gagne.',
   },
 ];
 
@@ -65,7 +49,7 @@ export const PlatoChallengeModal: React.FC<PlatoChallengeModalProps> = ({
   targetNick,
   onSendChallenge,
 }) => {
-  const [selectedGame, setSelectedGame] = useState<'PONG' | 'TICTACTOE' | 'SNAKE' | 'HUNGRY_GOAL'>('PONG');
+  const [selectedGame, setSelectedGame] = useState<'PONG' | 'TICTACTOE'>('PONG');
   const [targetScore, setTargetScore] = useState<number>(5);
 
   const opponentName = targetUser?.username || targetNick || 'votre adversaire';

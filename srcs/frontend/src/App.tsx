@@ -34,6 +34,8 @@ const MainRouter: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeDuelRoomId, setActiveDuelRoomId] = useState<string | undefined>(undefined);
   const [activeOpponentName, setActiveOpponentName] = useState<string | undefined>(undefined);
+  const [activeDuelGameType, setActiveDuelGameType] = useState<string>('pong');
+  const [activeDuelRole, setActiveDuelRole] = useState<'host' | 'guest'>('guest');
 
   const navigate = (tabId: string) => {
     if (tabId !== 'game') {
@@ -52,10 +54,13 @@ const MainRouter: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleStartDuel = (roomId?: string, opponentName?: string) => {
+  const handleStartDuel = (roomId?: string, opponentName?: string, gameType?: string, role: 'host' | 'guest' = 'guest') => {
     setActiveDuelRoomId(roomId);
     setActiveOpponentName(opponentName);
-    setSelectedGameId('pong');
+    const mappedGameId = gameType ? gameType.toLowerCase() : 'pong';
+    setSelectedGameId(mappedGameId);
+    setActiveDuelGameType(mappedGameId);
+    setActiveDuelRole(role);
     setCurrentTab('game');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -88,7 +93,6 @@ const MainRouter: React.FC = () => {
     );
   }
 
-  // 2. Authenticated Platform Shell
   return (
     <Layout
       currentTab={currentTab}
@@ -102,6 +106,7 @@ const MainRouter: React.FC = () => {
           initialGame={selectedGameId || 'pong'}
           initialDuelRoomId={activeDuelRoomId}
           initialOpponentName={activeOpponentName}
+          initialDuelRole={activeDuelRole}
         />
       )}
 
@@ -114,7 +119,7 @@ const MainRouter: React.FC = () => {
       {currentTab === 'notifications' && <NotificationsView onNavigate={navigate} onStartDuel={handleStartDuel} />}
       {currentTab === 'tournaments' && <TournamentView onNavigate={navigate} />}
       {currentTab === 'chat' && <ChatView onNavigate={navigate} />}
-      {currentTab === 'friends' && <FriendsList onNavigate={navigate} />}
+      {currentTab === 'friends' && <FriendsList onNavigate={navigate} onStartDuel={handleStartDuel} />}
 
       {currentTab === 'profile' && <ProfileView onNavigate={navigate} />}
       {currentTab === 'admin' && user.role === 'admin' && <AdminUsersView onNavigate={navigate} />}
